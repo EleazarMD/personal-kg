@@ -1,0 +1,750 @@
+"""
+Personal Knowledge Base (PKB) - GraphRAG API Service
+Port: 8765
+
+Microsoft GraphRAG-inspired implementation for personal knowledge management:
+- LLM-based entity extraction
+- Neo4j graph storage
+- ChromaDB vector search
+- Community detection and summarization
+
+Distinct from:
+- email-graphrag (port 8766): Email-specific knowledge graph
+- workspace knowledge: IDE/project context
+"""
+
+import hashlib
+import uuid
+from datetime import datetime
+from typing import List, Optional, Dict, Any
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+
+try:
+    from .config import get_settings
+    from .pic_auth import verify_pic_auth
+    from .models import (
+        Entity, Relationship, Community, Document,
+        EntityType, RelationshipType,
+        IngestRequest, IngestResponse, QueryRequest, SearchRequest,
+        EntityCreateRequest, RelationshipCreateRequest,
+        SearchResult, GraphRAGResponse
+    )
+    from .graph_store import GraphStore
+    from .vector_store import VectorStore
+    from .entity_extractor import EntityExtractor, CommunitySummarizer
+    from .pic_routes import router as pic_router, get_pic_store
+except ImportError:
+    from config import get_settings
+    from pic_auth import verify_pic_auth
+    from models import (
+        Entity, Relationship, Community, Document,
+        EntityType, RelationshipType,
+        IngestRequest, IngestResponse, QueryRequest, SearchRequest,
+        EntityCreateRequest, RelationshipCreateRequest,
+        SearchResult, GraphRAGResponse
+    )
+    from graph_store import GraphStore
+    from vector_store import VectorStore
+    from entity_extractor import EntityExtractor, CommunitySummarizer
+    from pic_routes import router as pic_router, get_pic_store
+
+
+settings = get_settings()
+
+# Initialize stores
+graph_store = GraphStore()
+vector_store = VectorStore()
+entity_extractor = EntityExtractor()
+community_summarizer = CommunitySummarizer()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan handler."""
+    print(f"🚀 Starting {settings.service_name} on port {settings.service_port}")
+    
+    # Connect to stores
+    try:
+        graph_store.connect()
+        print("✅ Connected to Neo4j (Knowledge Graph)")
+    except Exception as e:
+        print(f"⚠️ Neo4j connection failed: {e}")
+    
+    try:
+        vector_store.connect()
+        print("✅ Connected to ChromaDB")
+    except Exception as e:
+        print(f"⚠️ ChromaDB connection failed: {e}")
+    
+    # Initialize PIC store (shares Neo4j connection settings)
+    try:
+        pic_store = get_pic_store()
+        print("✅ Personal Identity Core (PIC) initialized")
+    except Exception as e:
+        print(f"⚠️ PIC initialization failed: {e}")
+    
+    yield
+    
+    # Cleanup
+    graph_store.close()
+    print("👋 Shutting down")
+
+
+app = FastAPI(
+    title="Personal Knowledge Graph & Identity Core",
+    description="GraphRAG knowledge graph with Personal Identity Core (PIC) for federated intelligence",
+    version="2.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add authentication middleware
+@app.middleware("http")
+async def pic_auth_middleware(request: Request, call_next):
+    """Authentication middleware for PIC endpoints."""
+    try:
+        await verify_pic_auth(request)
+    except HTTPException as e:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=e.status_code,
+            content={"detail": e.detail}
+        )
+    
+    response = await call_next(request)
+    return response
+
+# Include PIC routes
+app.include_router(pic_router)
+
+
+# =============================================================================
+# HEALTH & STATUS
+# =============================================================================
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    graph_stats = {}
+    vector_stats = {}
+    pic_stats = {}
+    
+    try:
+        graph_stats = graph_store.get_stats()
+        graph_status = "connected"
+    except Exception as e:
+        graph_status = f"error: {str(e)}"
+    
+    try:
+        vector_stats = vector_store.get_stats()
+        vector_status = "connected"
+    except Exception as e:
+        vector_status = f"error: {str(e)}"
+    
+    try:
+        pic_store = get_pic_store()
+        pic_stats = pic_store.get_pic_stats()
+        pic_status = "initialized"
+    except Exception as e:
+        pic_status = f"error: {str(e)}"
+    
+    return {
+        "status": "healthy" if graph_status == "connected" else "degraded",
+        "service": settings.service_name,
+        "port": settings.service_port,
+        "neo4j": graph_status,
+        "chromadb": vector_status,
+        "pic": pic_status,
+        "stats": {
+            "graph": graph_stats,
+            "vector": vector_stats,
+            "pic": pic_stats
+        },
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/api/kg/stats")
+async def get_stats():
+    """Get detailed statistics."""
+    graph_stats = graph_store.get_stats()
+    vector_stats = vector_store.get_stats()
+    
+    return {
+        "graph": graph_stats,
+        "vector": vector_stats,
+        "models": {
+            "extraction": settings.extraction_model,
+            "embedding": settings.embedding_model,
+            "summarization": settings.summarization_model
+        }
+    }
+
+
+# =============================================================================
+# DOCUMENT INGESTION (with Entity Extraction)
+# =============================================================================
+
+@app.post("/api/kg/ingest", response_model=IngestResponse)
+async def ingest_document(request: IngestRequest):
+    """
+    Ingest a document into the knowledge graph.
+    
+    This will:
+    1. Create a document node
+    2. Chunk the content
+    3. Extract entities and relationships using LLM
+    4. Store entities in Neo4j graph
+    5. Create vector embeddings in ChromaDB
+    """
+    # Generate document ID
+    doc_id = f"doc_{hashlib.sha256(request.content.encode()).hexdigest()[:12]}"
+    
+    # Create document in graph
+    graph_store.create_document(
+        doc_id=doc_id,
+        title=request.title or "Untitled",
+        source=request.source,
+        metadata=request.metadata
+    )
+    
+    entities_count = 0
+    relationships_count = 0
+    chunks_count = 0
+    
+    if request.extract_entities:
+        # Extract entities and relationships using LLM
+        extraction_result = await entity_extractor.extract(request.content, doc_id)
+        
+        # Store entities in graph and vector store
+        for entity in extraction_result.entities:
+            entity.source_document_id = doc_id
+            stored_entity = graph_store.upsert_entity(entity)
+            vector_store.add_entity(stored_entity)
+            graph_store.link_entity_to_document(stored_entity.id, doc_id)
+            entities_count += 1
+        
+        # Store relationships in graph
+        for rel in extraction_result.relationships:
+            rel.source_document_id = doc_id
+            graph_store.create_relationship(rel)
+            relationships_count += 1
+    
+    # Chunk content and store in vector store
+    chunk_size = settings.chunk_size
+    overlap = settings.chunk_overlap
+    
+    start = 0
+    chunk_idx = 0
+    while start < len(request.content):
+        end = start + chunk_size
+        chunk = request.content[start:end]
+        
+        if chunk.strip():
+            chunk_id = f"{doc_id}_chunk_{chunk_idx}"
+            vector_store.add_chunk(
+                chunk_id=chunk_id,
+                content=chunk,
+                document_id=doc_id,
+                metadata={"title": request.title, "source": request.source}
+            )
+            chunks_count += 1
+            chunk_idx += 1
+        
+        start = end - overlap
+    
+    return IngestResponse(
+        document_id=doc_id,
+        entities_extracted=entities_count,
+        relationships_extracted=relationships_count,
+        chunks_created=chunks_count,
+        message=f"Successfully ingested document with {entities_count} entities and {relationships_count} relationships"
+    )
+
+
+# =============================================================================
+# ENTITY OPERATIONS
+# =============================================================================
+
+@app.get("/api/kg/entities")
+async def list_entities(
+    type: Optional[str] = Query(None, description="Filter by entity type"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0)
+):
+    """List entities with optional filtering."""
+    entity_type = EntityType(type) if type else None
+    entities = graph_store.list_entities(entity_type=entity_type, limit=limit, offset=offset)
+    
+    return {
+        "entities": [e.model_dump() for e in entities],
+        "count": len(entities),
+        "limit": limit,
+        "offset": offset
+    }
+
+
+@app.get("/api/kg/entities/{entity_id}")
+async def get_entity(entity_id: str):
+    """Get a specific entity by ID."""
+    entity = graph_store.get_entity(entity_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return entity.model_dump()
+
+
+@app.post("/api/kg/entities")
+async def create_entity(request: EntityCreateRequest):
+    """Manually create an entity."""
+    entity = Entity(
+        name=request.name,
+        type=request.type,
+        description=request.description,
+        properties=request.properties
+    )
+    
+    stored = graph_store.upsert_entity(entity)
+    vector_store.add_entity(stored)
+    
+    return {
+        "status": "created",
+        "entity": stored.model_dump()
+    }
+
+
+@app.delete("/api/kg/entities/{entity_id}")
+async def delete_entity(entity_id: str):
+    """Delete an entity."""
+    deleted = graph_store.delete_entity(entity_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return {"status": "deleted", "id": entity_id}
+
+
+# =============================================================================
+# RELATIONSHIP OPERATIONS
+# =============================================================================
+
+@app.get("/api/kg/relationships")
+async def get_relationships(
+    entity_id: Optional[str] = Query(None),
+    type: Optional[str] = Query(None)
+):
+    """Get relationships, optionally filtered."""
+    rel_type = RelationshipType(type) if type else None
+    relationships = graph_store.get_relationships(entity_id=entity_id, relationship_type=rel_type)
+    
+    return {
+        "relationships": [r.model_dump() for r in relationships],
+        "count": len(relationships)
+    }
+
+
+@app.post("/api/kg/relationships")
+async def create_relationship(request: RelationshipCreateRequest):
+    """Create a relationship between entities."""
+    relationship = Relationship(
+        source_entity=request.source_entity,
+        target_entity=request.target_entity,
+        type=request.type,
+        description=request.description,
+        weight=request.weight,
+        properties=request.properties
+    )
+    
+    stored = graph_store.create_relationship(relationship)
+    
+    return {
+        "status": "created",
+        "relationship": stored.model_dump()
+    }
+
+
+# =============================================================================
+# SEARCH (Vector-based Semantic Search)
+# =============================================================================
+
+@app.post("/api/kg/search")
+async def semantic_search(request: SearchRequest):
+    """
+    Semantic search over the knowledge graph.
+    Uses vector embeddings for similarity search.
+    """
+    entity_type = request.entity_type.value if request.entity_type else None
+    
+    # Search entities
+    entity_results = vector_store.search_entities(
+        query=request.query,
+        entity_type=entity_type,
+        limit=request.limit
+    )
+    
+    # Search chunks for additional context
+    chunk_results = vector_store.search_chunks(
+        query=request.query,
+        limit=request.limit
+    )
+    
+    return {
+        "query": request.query,
+        "entities": [r.model_dump() for r in entity_results],
+        "chunks": [r.model_dump() for r in chunk_results],
+        "total_results": len(entity_results) + len(chunk_results)
+    }
+
+
+# =============================================================================
+# GRAPHRAG QUERY (Hybrid Local + Global Search)
+# =============================================================================
+
+@app.post("/api/kg/query")
+async def graphrag_query(request: QueryRequest):
+    """
+    GraphRAG-style query combining:
+    - Local search: Entity and relationship traversal
+    - Global search: Community summaries for high-level context
+    - Hybrid: Both combined
+    """
+    query = request.query
+    mode = request.mode
+    
+    context_parts = []
+    entities_used = []
+    relationships_used = []
+    communities_used = []
+    sources = []
+    
+    # LOCAL SEARCH: Find relevant entities and their neighborhoods
+    if mode in ["local", "hybrid"]:
+        # Vector search for relevant entities
+        entity_results = vector_store.search_entities(query, limit=5)
+        
+        for result in entity_results:
+            entity = graph_store.get_entity(result.id)
+            if entity:
+                entities_used.append(entity)
+                
+                # Get entity neighborhood
+                neighborhood = graph_store.get_entity_neighbors(entity.id, depth=1)
+                
+                # Build context
+                context_parts.append(f"Entity: {entity.name} ({entity.type.value})")
+                if entity.description:
+                    context_parts.append(f"  Description: {entity.description}")
+                
+                # Add relationships
+                rels = graph_store.get_relationships(entity_id=entity.id)
+                for rel in rels[:5]:
+                    context_parts.append(f"  → {rel.type.value} → {rel.target_entity}")
+                    relationships_used.append(rel)
+        
+        # Also search chunks for raw context
+        chunk_results = vector_store.search_chunks(query, limit=3)
+        for chunk in chunk_results:
+            context_parts.append(f"\nRelevant excerpt: {chunk.content[:500]}...")
+            sources.append(chunk.metadata.get("document_id", "unknown"))
+    
+    # GLOBAL SEARCH: Community summaries for high-level context
+    if mode in ["global", "hybrid"]:
+        community_results = vector_store.search_communities(query, limit=3)
+        
+        for result in community_results:
+            context_parts.append(f"\nCommunity context: {result.content}")
+            # Get full community from graph
+            communities = graph_store.get_communities()
+            for c in communities:
+                if c.id == result.id:
+                    communities_used.append(c)
+                    break
+    
+    # Build answer using context
+    if context_parts:
+        context = "\n".join(context_parts)
+        answer = f"Based on the knowledge graph:\n\n{context}"
+        confidence = 0.8
+    else:
+        answer = "No relevant information found in the knowledge graph for this query."
+        confidence = 0.2
+    
+    return GraphRAGResponse(
+        answer=answer,
+        entities_used=entities_used,
+        relationships_used=relationships_used,
+        communities_used=communities_used,
+        sources=list(set(sources)),
+        confidence=confidence
+    ).model_dump()
+
+
+# =============================================================================
+# NATURAL LANGUAGE QUERY (Simple)
+# =============================================================================
+
+@app.post("/api/kg/nl-query")
+async def natural_language_query(query: str):
+    """
+    Simple natural language query interface.
+    Parses intent and routes to appropriate search.
+    """
+    query_lower = query.lower()
+    
+    # Count queries
+    if "how many" in query_lower or "count" in query_lower:
+        stats = graph_store.get_stats()
+        
+        if "entit" in query_lower:
+            return {
+                "query": query,
+                "intent": "count",
+                "answer": f"There are {stats['entities']} entities in the knowledge graph.",
+                "data": {"count": stats["entities"]}
+            }
+        elif "relationship" in query_lower:
+            return {
+                "query": query,
+                "intent": "count", 
+                "answer": f"There are {stats['relationships']} relationships in the knowledge graph.",
+                "data": {"count": stats["relationships"]}
+            }
+        else:
+            return {
+                "query": query,
+                "intent": "count",
+                "answer": f"Knowledge graph contains {stats['entities']} entities, {stats['relationships']} relationships, and {stats['communities']} communities.",
+                "data": stats
+            }
+    
+    # List queries
+    if query_lower.startswith(("list", "show", "get")):
+        for entity_type in EntityType:
+            if entity_type.value in query_lower:
+                entities = graph_store.list_entities(entity_type=entity_type, limit=20)
+                return {
+                    "query": query,
+                    "intent": "list",
+                    "answer": f"Found {len(entities)} {entity_type.value} entities.",
+                    "data": [e.model_dump() for e in entities]
+                }
+    
+    # Default to semantic search
+    entity_results = vector_store.search_entities(query, limit=5)
+    
+    if entity_results:
+        return {
+            "query": query,
+            "intent": "search",
+            "answer": f"Found {len(entity_results)} relevant entities.",
+            "data": [r.model_dump() for r in entity_results]
+        }
+    else:
+        return {
+            "query": query,
+            "intent": "search",
+            "answer": "No matching entities found.",
+            "data": []
+        }
+
+
+# =============================================================================
+# GRAPH VISUALIZATION
+# =============================================================================
+
+@app.get("/api/kg/graph")
+async def get_graph_data(
+    limit: int = Query(200, ge=1, le=1000),
+    type: Optional[str] = Query(None, description="Filter by entity type")
+):
+    """
+    Get graph data for 3D visualization.
+    Returns entities and relationships in a format suitable for force-graph.
+    """
+    # Get entities
+    entity_type = None
+    if type and type != 'all':
+        try:
+            entity_type = EntityType(type)
+        except ValueError:
+            pass
+    
+    entities = graph_store.list_entities(entity_type=entity_type, limit=limit)
+    
+    # Get all relationships for these entities
+    entity_ids = {e.id for e in entities}
+    all_relationships = graph_store.get_relationships()
+    
+    # Filter relationships to only include those between our entities
+    relationships = [
+        r for r in all_relationships
+        if r.source_entity in entity_ids and r.target_entity in entity_ids
+    ]
+    
+    # Build stats
+    type_counts: Dict[str, int] = {}
+    for e in entities:
+        type_key = e.type.value
+        type_counts[type_key] = type_counts.get(type_key, 0) + 1
+    
+    return {
+        "entities": [e.model_dump() for e in entities],
+        "relationships": [
+            {
+                "source_entity_id": r.source_entity,
+                "target_entity_id": r.target_entity,
+                "type": r.type.value,
+                "description": r.description,
+                "weight": r.weight
+            }
+            for r in relationships
+        ],
+        "stats": {
+            "total_entities": len(entities),
+            "total_relationships": len(relationships),
+            "by_type": [{"type": k, "count": v} for k, v in type_counts.items()]
+        }
+    }
+
+
+# =============================================================================
+# GRAPH TRAVERSAL
+# =============================================================================
+
+@app.get("/api/kg/neighbors/{entity_id}")
+async def get_entity_neighbors(entity_id: str, depth: int = Query(1, ge=1, le=3)):
+    """Get an entity and its neighbors up to a certain depth."""
+    result = graph_store.get_entity_neighbors(entity_id, depth=depth)
+    
+    if not result["entity"]:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    
+    return {
+        "entity": result["entity"].model_dump(),
+        "neighbors": [n.model_dump() for n in result["neighbors"]],
+        "neighbor_count": result["neighbor_count"]
+    }
+
+
+@app.get("/api/kg/dependencies/{entity_id}")
+async def get_dependencies(entity_id: str):
+    """Get what an entity depends on."""
+    entity = graph_store.get_entity(entity_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    
+    # Get relationships where this entity is the source
+    rels = graph_store.get_relationships(entity_id=entity_id)
+    
+    # Filter for dependency-type relationships
+    dependency_types = [
+        RelationshipType.DEPENDS_ON,
+        RelationshipType.USES,
+        RelationshipType.PART_OF
+    ]
+    
+    dependencies = [r for r in rels if r.type in dependency_types]
+    
+    return {
+        "entity": entity.model_dump(),
+        "dependencies": [d.model_dump() for d in dependencies],
+        "count": len(dependencies)
+    }
+
+
+# =============================================================================
+# COMMUNITY OPERATIONS (GraphRAG)
+# =============================================================================
+
+@app.get("/api/kg/communities")
+async def list_communities(level: Optional[int] = Query(None)):
+    """List communities, optionally filtered by hierarchy level."""
+    communities = graph_store.get_communities(level=level)
+    return {
+        "communities": [c.model_dump() for c in communities],
+        "count": len(communities)
+    }
+
+
+@app.post("/api/kg/communities/build")
+async def build_communities():
+    """
+    Build communities from the entity graph.
+    Uses connected components as a simple community detection.
+    """
+    # Get all entities and relationships
+    entities = graph_store.list_entities(limit=1000)
+    relationships = graph_store.get_relationships()
+    
+    if not entities:
+        return {"message": "No entities to build communities from", "communities_created": 0}
+    
+    # Simple community detection: group by connected components
+    # For now, group entities by type as a simple heuristic
+    communities_by_type: Dict[str, List[Entity]] = {}
+    for entity in entities:
+        type_key = entity.type.value
+        if type_key not in communities_by_type:
+            communities_by_type[type_key] = []
+        communities_by_type[type_key].append(entity)
+    
+    communities_created = 0
+    
+    for type_key, type_entities in communities_by_type.items():
+        if len(type_entities) >= settings.min_community_size:
+            # Get relationships within this community
+            entity_ids = {e.id for e in type_entities}
+            community_rels = [
+                r for r in relationships 
+                if r.source_entity in entity_ids or r.target_entity in entity_ids
+            ]
+            
+            # Generate summary
+            summary = await community_summarizer.summarize_community(
+                type_entities[:20],  # Limit for summary
+                community_rels[:20]
+            )
+            
+            # Create community
+            community = Community(
+                id=f"community_{type_key}_{uuid.uuid4().hex[:8]}",
+                name=f"{type_key.title()} Community",
+                summary=summary,
+                entity_ids=[e.id for e in type_entities],
+                level=0
+            )
+            
+            graph_store.create_community(community)
+            vector_store.add_community(
+                community_id=community.id,
+                summary=summary,
+                name=community.name,
+                level=0
+            )
+            communities_created += 1
+    
+    return {
+        "message": f"Built {communities_created} communities",
+        "communities_created": communities_created
+    }
+
+
+# =============================================================================
+# MAIN
+# =============================================================================
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "api:app",
+        host="0.0.0.0",
+        port=settings.service_port,
+        reload=settings.debug
+    )
