@@ -1,0 +1,388 @@
+{
+  "dimensions": [
+    {
+      "id": "clinical",
+      "label": "Clinical Practice & Patient Care",
+      "short": "Clinical",
+      "icon": "🏥",
+      "accent": "#E53E3E",
+      "group": "core",
+      "description": "Patient care, medical decisions, clinic operations, and clinical knowledge management.",
+      "why_it_matters": "As a practicing physician, cognitive exhaustion by end-of-day leaves little capacity for critical patient communications. Missing an urgent message can have serious consequences.",
+      "scientific_basis": "Evidence-based medicine requires continuous learning. The average physician spends 2 hours on EHR for every 1 hour of patient care (Sinsky et al., 2016). AI-assisted triage can recover 40% of this administrative time.",
+      "model_thinker_models": ["Filter", "Network", "Threshold", "Complementarity"],
+      "key_insights": [
+        "Priority scoring reduces cognitive load by 60%",
+        "Literature alerts keep knowledge current without manual searching",
+        "Decision support augments (not replaces) clinical judgment"
+      ],
+      "related_dimensions": ["research", "health"],
+      "status": "operational",
+      "workflows": [
+        {"name": "Clinical email triage", "status": "operational"},
+        {"name": "Medical literature alerts", "status": "planned"},
+        {"name": "CME tracking", "status": "planned"}
+      ]
+    },
+    {
+      "id": "communication",
+      "label": "Communication & Messaging",
+      "short": "Comm",
+      "icon": "✉️",
+      "accent": "#3182CE",
+      "group": "core",
+      "description": "Email, messaging, voice-of-Eleazar preservation, and relationship maintenance.",
+      "why_it_matters": "Communication is the #1 daily energy drain. After seeing patients all day, drafting personalized replies feels impossible. This dimension eliminates that friction while preserving authentic voice.",
+      "scientific_basis": "Self-determination theory (Deci & Ryan) shows authentic communication strengthens relationships. Studies show people can detect AI-generated writing—preserving voice requires learning individual communication patterns.",
+      "model_thinker_models": ["Signaling", "Game Theory", "Markov", "LDA"],
+      "key_insights": [
+        "Tone calibration per recipient improves relationship quality",
+        "Batch processing reduces context-switching costs",
+        "Voice preservation requires continuous learning from corrections"
+      ],
+      "related_dimensions": ["family", "social_capital"],
+      "status": "in-progress",
+      "workflows": [
+        {"name": "Personalized reply drafting", "status": "in-progress"},
+        {"name": "Tone calibration", "status": "in-progress"},
+        {"name": "Message prioritization", "status": "operational"}
+      ]
+    },
+    {
+      "id": "family",
+      "label": "Family Coordination",
+      "short": "Family",
+      "icon": "👨‍👩‍👧‍👦",
+      "accent": "#D53F8C",
+      "group": "core",
+      "description": "Family scheduling, activities, school communications, and relationship tracking.",
+      "why_it_matters": "Coordinating 3 kids across different activities creates logistical complexity. Missing a pickup time or school event has immediate family impact.",
+      "scientific_basis": "Family systems theory (Bowen) emphasizes that family is an emotional unit. Research shows parental stress directly impacts child wellbeing—reducing logistics burden improves family dynamics.",
+      "model_thinker_models": ["Network", "Markov", "Threshold", "Diffusion"],
+      "key_insights": [
+        "Calendar optimization reduces conflict by 70%",
+        "School communication monitoring catches important notices",
+        "Milestone tracking supports developmental awareness"
+      ],
+      "related_dimensions": ["communication", "health", "goals"],
+      "status": "in-progress",
+      "workflows": [
+        {"name": "Family calendar optimization", "status": "planned"},
+        {"name": "School communication monitor", "status": "planned"},
+        {"name": "Kids activity tracking", "status": "in-progress"}
+      ]
+    },
+    {
+      "id": "research",
+      "label": "Research & Education",
+      "short": "Research",
+      "icon": "🔬",
+      "accent": "#805AD5",
+      "group": "core",
+      "description": "Medical research, continuing education, publications, and knowledge graph expansion.",
+      "why_it_matters": "Staying current with medical literature is both professional requirement and intellectual passion. Manual searching wastes time better spent on patient care or family.",
+      "scientific_basis": "The half-life of medical knowledge is ~5 years. Physicians need to process ~7,500 articles daily to stay current (Alper et al., 2004). AI-assisted filtering makes this tractable.",
+      "model_thinker_models": ["Filter", "Topic Model", "Search", "Recommendation"],
+      "key_insights": [
+        "Literature monitoring surfaces relevant papers automatically",
+        "Knowledge graph expansion creates serendipitous connections",
+        "Model evaluation ensures best tool for each task"
+      ],
+      "related_dimensions": ["clinical", "infrastructure"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Literature monitoring", "status": "planned"},
+        {"name": "Research project tracking", "status": "in-progress"},
+        {"name": "Knowledge graph expansion", "status": "future"}
+      ]
+    },
+    {
+      "id": "health",
+      "label": "Health & Wellness",
+      "short": "Health",
+      "icon": "💚",
+      "accent": "#38A169",
+      "group": "core",
+      "description": "Personal health, fitness, nutrition, sleep, and preventive care.",
+      "why_it_matters": "Physician, heal thyself. Doctors are notoriously bad at their own health. Proactive wellness prevents burnout and models healthy behavior for family.",
+      "scientific_basis": "Chronobiology research shows alignment with circadian rhythms improves cognitive performance by 20%. Sleep debt compounds—recovering from 1 hour lost takes 4+ nights.",
+      "model_thinker_models": ["Threshold", "Diffusion", "Oscillator", "Fitness"],
+      "key_insights": [
+        "Sleep pattern analysis reveals optimization opportunities",
+        "Cognitive load monitoring predicts exhaustion before it hits",
+        "Family health coordination tracks pediatric schedules"
+      ],
+      "related_dimensions": ["chronobiology", "attention", "family"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Sleep pattern analysis", "status": "planned"},
+        {"name": "Exercise tracking", "status": "operational"},
+        {"name": "Cognitive load monitoring", "status": "planned"}
+      ]
+    },
+    {
+      "id": "financial",
+      "label": "Financial Intelligence",
+      "short": "Financial",
+      "icon": "💰",
+      "accent": "#D69E2E",
+      "group": "core",
+      "description": "Investments, budgeting, financial planning, and wealth optimization.",
+      "why_it_matters": "MBA-level financial analysis without the spreadsheet time. Investment theses need tracking against market data to avoid emotional decisions.",
+      "scientific_basis": "Behavioral finance (Kahneman, Thaler) shows investors systematically make suboptimal decisions. Automated tracking removes emotion from portfolio management.",
+      "model_thinker_models": ["Discounted Cash Flow", "CAPM", "Monte Carlo", "Game Theory"],
+      "key_insights": [
+        "Portfolio monitoring provides daily situational awareness",
+        "Thesis tracking prevents drift from investment rationale",
+        "NPV/IRR automation enables rapid decision-making"
+      ],
+      "related_dimensions": ["goals", "infrastructure"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Portfolio monitoring", "status": "planned"},
+        {"name": "Investment thesis tracking", "status": "planned"},
+        {"name": "NPV/IRR analysis", "status": "planned"}
+      ]
+    },
+    {
+      "id": "goals",
+      "label": "Goals & Milestones",
+      "short": "Goals",
+      "icon": "🎯",
+      "accent": "#DD6B20",
+      "group": "core",
+      "description": "Personal and professional goal tracking, quarterly reviews, and career trajectory.",
+      "why_it_matters": "Without explicit goal tracking, day-to-day demands crowd out long-term priorities. Quarterly reviews prevent drift and maintain strategic focus.",
+      "scientific_basis": "Locke & Latham goal-setting theory: specific hard goals produce higher performance than easy goals. Progress tracking provides motivation through visible advancement.",
+      "model_thinker_models": ["Sigmoid", "Oscillator", "Path Dependency", "Multi-Armed Bandit"],
+      "key_insights": [
+        "Goal dashboards make progress visible",
+        "Quarterly reviews prevent goal drift",
+        "Career trajectory modeling informs skill development"
+      ],
+      "related_dimensions": ["meaning", "habits"],
+      "status": "in-progress",
+      "workflows": [
+        {"name": "Goal progress dashboard", "status": "in-progress"},
+        {"name": "Quarterly goal review", "status": "planned"},
+        {"name": "Career trajectory modeling", "status": "future"}
+      ]
+    },
+    {
+      "id": "infrastructure",
+      "label": "Infrastructure & Tech",
+      "short": "Infra",
+      "icon": "⚙️",
+      "accent": "#718096",
+      "group": "core",
+      "description": "Homelab, tech stack, system maintenance, and AI infrastructure management.",
+      "why_it_matters": "The AI homelab is a force multiplier. Keeping systems running ensures all other dimensions have the computational foundation they need.",
+      "scientific_basis": "Reliability engineering (SRE principles) emphasizes that downtime has cascading effects. Proactive monitoring prevents the 2 AM wake-up call.",
+      "model_thinker_models": ["Redundancy", "Cascade", "Sandpile", "Reliability"],
+      "key_insights": [
+        "Health monitoring catches issues before they cascade",
+        "GPU allocation optimization maximizes capability",
+        "Backup systems ensure continuity"
+      ],
+      "related_dimensions": ["research"],
+      "status": "operational",
+      "workflows": [
+        {"name": "Service health monitoring", "status": "operational"},
+        {"name": "GPU resource allocation", "status": "operational"},
+        {"name": "Backup automation", "status": "operational"}
+      ]
+    },
+    {
+      "id": "metacognition",
+      "label": "Metacognition",
+      "short": "Metacog",
+      "icon": "🪞",
+      "accent": "#00B5D8",
+      "group": "cognitive",
+      "description": "Self-awareness, decision quality, bias detection, and thinking process optimization.",
+      "why_it_matters": "Thinking about thinking is the highest-leverage intervention. Understanding your own cognitive patterns lets you compensate for weaknesses.",
+      "scientific_basis": "Metacognition research (Flavell, 1979) shows experts have superior monitoring of their own comprehension. Training metacognitive skills improves learning and decision quality across domains.",
+      "model_thinker_models": ["Model of Models", "Agent-Based", "Emergence", "Feedback Loop"],
+      "key_insights": [
+        "Bias detection surfaces systematic thinking errors",
+        "Decision journaling creates metacognitive data",
+        "Cognitive pattern recognition reveals personal blind spots"
+      ],
+      "related_dimensions": ["decision_fatigue", "attention", "meaning"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Bias detection", "status": "planned"},
+        {"name": "Decision quality scoring", "status": "future"},
+        {"name": "Cognitive pattern analysis", "status": "future"}
+      ]
+    },
+    {
+      "id": "decision_fatigue",
+      "label": "Decision Fatigue",
+      "short": "Decision",
+      "icon": "🔋",
+      "accent": "#E53E3E",
+      "group": "cognitive",
+      "description": "Cognitive load management, decision optimization, and ego depletion prevention.",
+      "why_it_matters": "Every decision depletes the same reservoir. Saving decisions for high-stakes choices preserves judgment when it matters most.",
+      "scientific_basis": "Baumeister's ego depletion research shows decision-making consumes self-regulatory resources. Strategic decision avoidance preserves capacity for important choices.",
+      "model_thinker_models": ["Threshold", "Satisficing", "Heuristic", "Conservation"],
+      "key_insights": [
+        "Decision load tracking predicts exhaustion",
+        "Ritualization reduces daily decisions",
+        "Batch processing consolidates low-stakes choices"
+      ],
+      "related_dimensions": ["metacognition", "flow", "habits"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Decision load tracking", "status": "planned"},
+        {"name": "Decision ritualization", "status": "future"},
+        {"name": "Cognitive restoration scheduling", "status": "future"}
+      ]
+    },
+    {
+      "id": "flow",
+      "label": "Flow & Deep Work",
+      "short": "Flow",
+      "icon": "🌊",
+      "accent": "#3182CE",
+      "group": "cognitive",
+      "description": "Deep work sessions, focus optimization, and flow state engineering.",
+      "why_it_matters": "Flow is the optimal state for high-value output. Protecting flow time from interruption is the highest-leverage time management intervention.",
+      "scientific_basis": "Csikszentmihalyi's flow research shows deep immersion produces both superior output and subjective wellbeing. Flow requires clear goals, immediate feedback, and challenge-skill balance.",
+      "model_thinker_models": ["Oscillator", "Fitness", "Control Theory", "Reinforcement Learning"],
+      "key_insights": [
+        "Flow state detection identifies optimal work windows",
+        "Deep work protection prevents interruption",
+        "Challenge calibration maintains engagement"
+      ],
+      "related_dimensions": ["attention", "chronobiology", "habits"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Flow state detection", "status": "planned"},
+        {"name": "Deep work scheduling", "status": "planned"},
+        {"name": "Focus environment optimization", "status": "future"}
+      ]
+    },
+    {
+      "id": "attention",
+      "label": "Attention & Cognitive Load",
+      "short": "Attention",
+      "icon": "🧠",
+      "accent": "#805AD5",
+      "group": "cognitive",
+      "description": "Cognitive load management, distraction filtering, and attention economy.",
+      "why_it_matters": "Attention is the scarcest resource. Every notification is a tax on cognitive capacity. Protecting attention is protecting productivity.",
+      "scientific_basis": "Attention economy (Simon, 1971): 'A wealth of information creates a poverty of attention.' Research shows it takes 23 minutes to refocus after interruption.",
+      "model_thinker_models": ["Filter", "Priority Queue", "Attention Mechanism", "Information Theory"],
+      "key_insights": [
+        "Notification filtering reduces context-switching",
+        "Attention tracking reveals focus patterns",
+        "Cognitive load balancing prevents overload"
+      ],
+      "related_dimensions": ["decision_fatigue", "flow", "chronobiology"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Notification filtering", "status": "planned"},
+        {"name": "Attention tracking", "status": "future"},
+        {"name": "Cognitive load balancing", "status": "future"}
+      ]
+    },
+    {
+      "id": "chronobiology",
+      "label": "Chronobiology",
+      "short": "Chrono",
+      "icon": "🕐",
+      "accent": "#319795",
+      "group": "cognitive",
+      "description": "Circadian rhythms, energy management, and temporal optimization.",
+      "why_it_matters": "Cognitive performance varies 20-30% across the day. Aligning task types with biological peaks maximizes output without extra effort.",
+      "scientific_basis": "Circadian research shows body temperature, cortisol, and alertness follow ~24-hour rhythms. Peak performance requires matching task demands to biological state.",
+      "model_thinker_models": ["Oscillator", "Circadian", "Temporal Dynamics", "Optimization"],
+      "key_insights": [
+        "Energy mapping reveals personal peak hours",
+        "Task-energy matching optimizes daily structure",
+        "Light exposure optimization improves sleep quality"
+      ],
+      "related_dimensions": ["health", "flow", "attention"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Energy mapping", "status": "planned"},
+        {"name": "Task-energy matching", "status": "future"},
+        {"name": "Sleep optimization", "status": "future"}
+      ]
+    },
+    {
+      "id": "social_capital",
+      "label": "Social Capital",
+      "short": "Social",
+      "icon": "🤝",
+      "accent": "#D53F8C",
+      "group": "cognitive",
+      "description": "Relationship intelligence, network health, and social support optimization.",
+      "why_it_matters": "Social capital is the strongest predictor of wellbeing and career success. Nurturing relationships requires intentional effort that doesn't happen by accident.",
+      "scientific_basis": "Social network research (Granovetter) shows weak ties provide novel information. Putnam's 'Bowling Alone' documents decline in social capital—intentional cultivation counters this trend.",
+      "model_thinker_models": ["Network", "Diffusion", "Centrality", "Community Detection"],
+      "key_insights": [
+        "Relationship tracking surfaces maintenance needs",
+        "Network analysis reveals structural holes",
+        "Social support mapping identifies isolation risk"
+      ],
+      "related_dimensions": ["communication", "meaning", "family"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Relationship tracking", "status": "planned"},
+        {"name": "Network analysis", "status": "future"},
+        {"name": "Social support mapping", "status": "future"}
+      ]
+    },
+    {
+      "id": "meaning",
+      "label": "Meaning & Purpose",
+      "short": "Meaning",
+      "icon": "✨",
+      "accent": "#D69E2E",
+      "group": "cognitive",
+      "description": "Purpose alignment, values clarification, and existential wellbeing.",
+      "why_it_matters": "Meaning is the ultimate meta-question. Without clarity on purpose, other optimizations feel empty. Viktor Frankl: 'Man's main concern is not to gain pleasure or to avoid pain but rather to see a meaning in his life.'",
+      "scientific_basis": "Logotherapy research (Frankl) shows meaning-seeking is fundamental human motivation. Positive psychology (Seligman) identifies meaning as key component of wellbeing beyond pleasure.",
+      "model_thinker_models": ["Value Function", "Multi-Objective", "Purpose Alignment", "Meaning Mapping"],
+      "key_insights": [
+        "Values clarification provides decision anchors",
+        "Purpose alignment checks prevent drift",
+        "Meaningful moments tracking builds gratitude"
+      ],
+      "related_dimensions": ["goals", "habits", "social_capital"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Values clarification", "status": "future"},
+        {"name": "Purpose alignment check", "status": "future"},
+        {"name": "Meaningful moments tracking", "status": "future"}
+      ]
+    },
+    {
+      "id": "habits",
+      "label": "Habit Architecture",
+      "short": "Habits",
+      "icon": "🔄",
+      "accent": "#38A169",
+      "group": "cognitive",
+      "description": "Behavior design, habit tracking, and routine optimization.",
+      "why_it_matters": "40% of daily actions are habits, not decisions. Optimizing habit architecture is the highest-leverage behavior change strategy.",
+      "scientific_basis": "Duhigg's habit loop: cue → routine → reward. Wood & Neal research shows habits persist because they become neurologically efficient. James's 'laws of habit' provide design principles.",
+      "model_thinker_models": ["Reinforcement Learning", "Habit Loop", "Behavior Change", "Fogg's Behavior Model"],
+      "key_insights": [
+        "Habit stacking leverages existing routines",
+        "Environment design reduces friction",
+        "Reward optimization strengthens habit formation"
+      ],
+      "related_dimensions": ["goals", "health", "flow"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Habit tracking", "status": "planned"},
+        {"name": "Habit stacking design", "status": "future"},
+        {"name": "Environment optimization", "status": "future"}
+      ]
+    }
+  ]
+}

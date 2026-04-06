@@ -1,0 +1,29 @@
+[Unit]
+Description=Personal Context Graph (PCG) - Unified Personal Intelligence Service
+After=network.target
+Requires=network.target
+
+[Service]
+Type=simple
+User=eleazar
+Group=eleazar
+WorkingDirectory=/home/eleazar/Projects/AIHomelab/services/personal-kg/services/personal-kg
+Environment="PATH=/home/eleazar/Projects/AIHomelab/services/personal-kg/services/personal-kg/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/home/eleazar/Projects/AIHomelab/services/personal-kg/services/personal-kg"
+Environment="NEO4J_URI=bolt://localhost:7689"
+Environment="NEO4J_USER=neo4j"
+Environment="NEO4J_PASSWORD=graphrag2025"
+Environment="PIC_READ_KEY=dev-read-key-change-in-prod"
+Environment="PIC_ADMIN_KEY=dev-admin-key-change-in-prod"
+ExecStart=/home/eleazar/Projects/AIHomelab/services/personal-kg/services/personal-kg/venv/bin/python -m uvicorn api:app --host 0.0.0.0 --port 8765
+Restart=always
+RestartSec=5
+StartLimitInterval=0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pcg
+
+[Install]
+WantedBy=multi-user.target

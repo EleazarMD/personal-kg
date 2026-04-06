@@ -1,11 +1,16 @@
 """
-Personal Knowledge Base (PKB) - GraphRAG API Service
+Personal Context Graph (PCG) - Unified Personal Intelligence Service
 Port: 8765
 
-Microsoft GraphRAG-inspired implementation for personal knowledge management:
-- LLM-based entity extraction
-- Neo4j graph storage
+Unified service combining:
+- PIC (Personal Identity Core): Identity, preferences, goals, observations
+- KG-API (Knowledge Graph): GraphRAG with entity extraction, semantic search
+- LIAM (Life Intelligence Augmentation Matrix): Personal framework modeling
+
+Architecture:
+- Neo4j graph storage (shared backend for all components)
 - ChromaDB vector search
+- LLM-based entity extraction
 - Community detection and summarization
 
 Distinct from:
@@ -95,8 +100,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Personal Knowledge Graph & Identity Core",
-    description="GraphRAG knowledge graph with Personal Identity Core (PIC) for federated intelligence",
+    title="Personal Context Graph (PCG)",
+    description="Unified personal intelligence: PIC (Identity/Preferences/Goals) + KG-API (Knowledge Graph) + LIAM (Framework Modeling)",
     version="2.0.0",
     lifespan=lifespan
 )
@@ -127,6 +132,10 @@ async def pic_auth_middleware(request: Request, call_next):
 
 # Include PIC routes
 app.include_router(pic_router)
+
+# Include LIAM routes
+from liam_routes import router as liam_router
+app.include_router(liam_router)
 
 
 # =============================================================================
