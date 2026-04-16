@@ -77,7 +77,7 @@ services/personal-kg/
 - Uses PIC for identity, preferences, goals in system prompt
 - Has caching layer for PIC data
 
-**Hermes Core** (`services/hermes-core`)
+**Hermes Core** (`services/cig`)
 - Should query PIC for personalized email responses
 - Uses user preferences and communication style
 

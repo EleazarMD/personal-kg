@@ -48,6 +48,7 @@ class Framework(BaseModel):
     id: str = Field(..., description="Framework ID")
     name: str = Field(..., description="Framework name")
     source: str = Field(..., description="Source (e.g., 'Model Thinker', 'Kahneman', 'Algorithms to Live By')")
+    category: str = Field(default="general", description="Framework category (e.g., decision_making, systems, computational)")
     description: str = Field(..., description="What this framework is")
     when_to_use: str = Field(..., description="When to apply this framework")
     key_concepts: List[str] = Field(default_factory=list, description="Core concepts")

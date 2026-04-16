@@ -1,0 +1,934 @@
+{
+  "frameworks": [
+    {
+      "id": "filter",
+      "name": "Filter",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "information_processing",
+      "description": "Separating signal from noise. Filters reduce overwhelming information to a manageable subset. Filtering is always lossy \u2014 every filter trades completeness for tractability.",
+      "when_to_use": "When overwhelmed by information volume. Use for email triage, literature monitoring, notification management, any domain where inflow exceeds processing capacity.",
+      "key_concepts": [
+        "Lossy reduction: every filter discards some signal along with noise",
+        "Multi-stage filtering: cascade coarse to fine for efficiency",
+        "Specificity vs. sensitivity tradeoff: tight filters miss noise but also signal",
+        "Context-dependent criteria: what counts as signal changes with the task",
+        "Bloom filters: probabilistic filters allowing false positives but never false negatives"
+      ],
+      "limitations": "Filters create echo chambers when criteria are too narrow. Systematic blind spots. Over-filtering leads to surprise from black swan events.",
+      "applicable_dimensions": [
+        "clinical",
+        "research",
+        "attention"
+      ]
+    },
+    {
+      "id": "network",
+      "name": "Network",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "structural",
+      "description": "Interconnected nodes and edges revealing how structure shapes outcomes. Networks expose hidden patterns: who influences whom, where bottlenecks form, how information spreads.",
+      "when_to_use": "When relationships matter more than entities themselves. Use for influence patterns, key connectors, information flow, social structures, bottlenecks.",
+      "key_concepts": [
+        "Degree: number of connections \u2014 high-degree nodes are hubs",
+        "Betweenness centrality: how often a node sits on shortest paths \u2014 gatekeepers",
+        "Clustering coefficient: how interconnected neighbors are \u2014 communities vs. bridges",
+        "Small-world property: most nodes reachable in few hops",
+        "Preferential attachment: rich-get-richer creates scale-free networks"
+      ],
+      "limitations": "Assumes relationships are the primary driver, may miss individual attributes. Computationally expensive for large graphs. Edge definitions subjective.",
+      "applicable_dimensions": [
+        "clinical",
+        "family",
+        "social_capital"
+      ]
+    },
+    {
+      "id": "threshold",
+      "name": "Threshold",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "decision_making",
+      "description": "Actions trigger only when a variable crosses a critical value. Thresholds create discontinuities \u2014 small changes below threshold have no effect, crossing it triggers full response. Explains tipping points and sudden regime shifts.",
+      "when_to_use": "When outcomes are discontinuous. Use for tipping points in behavior, when to escalate vs. monitor, why gradual deterioration leads to sudden collapse.",
+      "key_concepts": [
+        "Critical mass: collective action requires minimum participation level",
+        "Hysteresis: trigger threshold differs from reversal threshold",
+        "Granovetter's model: each person has a different threshold for joining",
+        "Multi-threshold systems: cascading thresholds create chain reactions",
+        "Threshold setting as optimization: too low = false alarms, too high = missed events"
+      ],
+      "limitations": "Real-world thresholds are often fuzzy. Multiple interacting thresholds create unpredictable dynamics. Binary by nature \u2014 doesn't capture gradual degradation.",
+      "applicable_dimensions": [
+        "clinical",
+        "family"
+      ]
+    },
+    {
+      "id": "complementarity",
+      "name": "Complementarity",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "Combining different types produces more than the sum of parts. Complementarity explains why diverse teams outperform homogeneous ones, why cognitive diversity trumps ability, why multiple models beat any single model.",
+      "when_to_use": "When combining different perspectives/skills/approaches could yield better results than optimizing any single one. Use for team composition, tool selection, model ensembling.",
+      "key_concepts": [
+        "Cognitive diversity: different tools produce different blind spots \u2014 combining reduces total",
+        "One-model trap: single framework creates systematic errors in uncovered dimensions",
+        "Complementarity vs. substitution: some things replace, others amplify \u2014 know which",
+        "Flat vs. peaked landscapes: complementarity matters most with multiple local optima",
+        "Many Model Thinker: wisdom comes from knowing which model to apply when"
+      ],
+      "limitations": "Requires integration overhead. Doesn't apply when one approach strictly dominates. Coordination costs can exceed benefits.",
+      "applicable_dimensions": [
+        "clinical"
+      ]
+    },
+    {
+      "id": "signaling",
+      "name": "Signaling",
+      "source": "The Model Thinker / Spence (1973)",
+      "category": "strategic",
+      "description": "Actions convey hidden information. Signaling occurs when one party knows something another doesn't and takes costly action to reveal it. Costliness is essential \u2014 cheap signals are faked, costly ones are credible.",
+      "when_to_use": "When there's asymmetric information and you need to distinguish genuine quality from cheap talk. Use for understanding credentials, quality signals, communicating commitment.",
+      "key_concepts": [
+        "Costly signaling: credible only when expensive enough that low-quality types wouldn't send",
+        "Separating equilibrium: high and low types choose different signals, revealing type",
+        "Pooling equilibrium: both types send same signal, no information revealed",
+        "Signal inflation: when everyone signals, credible signaling cost rises",
+        "Honest signals vs. cheap talk: words are cheap; actions and sacrifices are honest"
+      ],
+      "limitations": "Assumes rational actors who correctly interpret signals. Signals can be misread or manipulated. Cost of signaling can be socially wasteful.",
+      "applicable_dimensions": [
+        "communication"
+      ]
+    },
+    {
+      "id": "game_theory",
+      "name": "Game Theory",
+      "source": "The Model Thinker / von Neumann & Morgenstern",
+      "category": "strategic",
+      "description": "Strategic interaction where outcomes depend on what others choose. Reveals when cooperation emerges naturally, when conflict is inevitable, how payoff structure shapes behavior.",
+      "when_to_use": "When your best choice depends on what others choose. Use for negotiation, cooperation/failure analysis, incentive design, predicting responses to actions.",
+      "key_concepts": [
+        "Nash equilibrium: no player benefits from unilaterally changing strategy",
+        "Prisoner's dilemma: individual rationality \u2192 collective irrationality \u2014 cooperation needs mechanism design",
+        "Repeated games: iteration enables cooperation via reputation and reciprocity (tit-for-tat)",
+        "Mechanism design: structuring payoffs so self-interest produces desired outcomes",
+        "Zero-sum vs. positive-sum: zero-sum = one's gain is another's loss; positive-sum = cooperation creates surplus"
+      ],
+      "limitations": "Assumes rational payoff-maximizing actors \u2014 people often aren't rational. Requires knowing others' payoffs. Multiple equilibria make prediction difficult.",
+      "applicable_dimensions": [
+        "communication"
+      ]
+    },
+    {
+      "id": "markov",
+      "name": "Markov Process",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "probabilistic",
+      "description": "Next state depends only on current state, not on history. Captures path-independent dynamics: given where you are now, the past doesn't matter for predicting the future.",
+      "when_to_use": "When predicting transitions and current state captures all relevant information. Use for communication patterns, habit state transitions, workflow progression.",
+      "key_concepts": [
+        "Memorylessness: P(next | current, past) = P(next | current)",
+        "Transition matrix: probabilities of moving between states",
+        "Stationary distribution: long-run probabilities converge regardless of starting state",
+        "Ergodicity: every state eventually reachable from every other",
+        "Mixing time: how quickly the process 'forgets' its initial state"
+      ],
+      "limitations": "Markov assumption is strong \u2014 many real processes have long memory. Hidden states can violate the property. Ignores path-dependent effects.",
+      "applicable_dimensions": [
+        "communication",
+        "family"
+      ]
+    },
+    {
+      "id": "lda",
+      "name": "Latent Dirichlet Allocation (LDA)",
+      "source": "The Model Thinker / Blei, Ng & Jordan (2003)",
+      "category": "computational",
+      "description": "Discovers hidden thematic structure in document collections. Each document is a mixture of topics, each topic is a distribution over words. Inverting the generative process reveals latent themes without labeling.",
+      "when_to_use": "When discovering hidden structure in large text collections without manual labeling. Use for email categorization, conversation theme extraction, document clustering.",
+      "key_concepts": [
+        "Latent topics: unobserved themes generating observed word distributions",
+        "Document-topic distribution: each document is a mixture of multiple topics",
+        "Topic-word distribution: each topic assigns different probabilities to words",
+        "Dirichlet prior: controls sparsity \u2014 topics per document, words per topic",
+        "Variational inference: approximate posterior computation for practical scaling"
+      ],
+      "limitations": "Assumes bag-of-words (no word order), losing syntax. Topic interpretability requires human judgment. Choosing number of topics is more art than science.",
+      "applicable_dimensions": [
+        "communication"
+      ]
+    },
+    {
+      "id": "diffusion",
+      "name": "Diffusion",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "structural",
+      "description": "How things spread through populations \u2014 ideas, behaviors, diseases, innovations. Reveals why some things go viral while others fizzle, how network structure affects spread speed.",
+      "when_to_use": "When understanding how something spreads through a population. Use for predicting habit adoption, information propagation, disease spread modeling, intervention design.",
+      "key_concepts": [
+        "SIR model: Susceptible \u2192 Infected \u2192 Recovered \u2014 classic epidemic framework",
+        "R\u2080: average secondary infections per case \u2014 R\u2080 > 1 means epidemic",
+        "Bass diffusion: innovators (independent) + imitators (social influence)",
+        "Network structure: hubs accelerate, bottlenecks slow spread",
+        "Critical mass: diffusion fails if initial adopters are too few or poorly connected"
+      ],
+      "limitations": "Simple forms assume homogeneous mixing \u2014 real networks have structure. Often ignores individual heterogeneity. Behavioral diffusion is messier than biological.",
+      "applicable_dimensions": [
+        "family",
+        "social_capital"
+      ]
+    },
+    {
+      "id": "topic_model",
+      "name": "Topic Model",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "computational",
+      "description": "Discovers latent thematic structure in data. Beyond LDA: hierarchical variants, dynamic topic models tracking themes over time, correlated topic models capturing relationships between themes.",
+      "when_to_use": "When organizing large unstructured data by discovering hidden categories. Use for research literature organization, email archive analysis, meeting note clustering.",
+      "key_concepts": [
+        "Latent structure: observed data is surface manifestation of deeper thematic organization",
+        "Dimensionality reduction: thousands of documents \u2192 dozens of topics",
+        "Dynamic topics: themes evolve over time \u2014 tracking conceptual drift",
+        "Hierarchical topics: themes nest within broader themes",
+        "Perplexity: measuring how well model predicts unseen data \u2014 model selection criterion"
+      ],
+      "limitations": "Requires sufficient data volume. Topic interpretability is subjective. Struggles with short texts.",
+      "applicable_dimensions": [
+        "research"
+      ]
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "computational",
+      "description": "Finding the best option in a space of possibilities. Reveals when to explore vs. exploit, how search space structure affects difficulty, why order matters.",
+      "when_to_use": "When finding the best option among many and can't evaluate them all. Use for literature review strategy, job search, any selection problem where evaluation cost requires strategy.",
+      "key_concepts": [
+        "Explore-exploit tradeoff: gathering vs. using information \u2014 the fundamental search dilemma",
+        "Search space structure: smooth = gradient ascent; rugged = exploration needed",
+        "Optimal stopping: secretary problem (1/e \u2248 37% rule) for when to commit",
+        "Multi-armed bandit: balancing exploration of unknown with exploitation of known good",
+        "Information cascades: early results influence later searchers, creating herding"
+      ],
+      "limitations": "Assumes you can evaluate options \u2014 evaluation itself may be costly or noisy. Often assumes stationary search space. Real spaces may be adversarial.",
+      "applicable_dimensions": [
+        "research"
+      ]
+    },
+    {
+      "id": "recommendation",
+      "name": "Recommendation",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "computational",
+      "description": "Predicting what someone will value based on similar people (collaborative filtering) or similar items (content-based). Reveals how preferences cluster, why filter bubbles form.",
+      "when_to_use": "When predicting preferences or suggesting options from a large catalog. Use for literature recommendation, content curation, skill suggestion, personalization at scale.",
+      "key_concepts": [
+        "Collaborative filtering: 'people like you also liked...' \u2014 leveraging similar users",
+        "Content-based filtering: 'things like what you liked' \u2014 matching attributes to profiles",
+        "Cold start problem: new users/items have no preference data \u2014 hybrid approaches help",
+        "Filter bubble: over-optimizing relevance creates echo chambers \u2014 need serendipity",
+        "Explore-exploit in recommendation: known-good vs. potentially-better items"
+      ],
+      "limitations": "Creates feedback loops \u2014 past recommendations shape future preferences. Struggles with novelty and diversity. Popularity bias amplifies already-popular items.",
+      "applicable_dimensions": [
+        "research"
+      ]
+    },
+    {
+      "id": "sigmoid",
+      "name": "Sigmoid / S-Curve",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "S-shaped growth: slow start, rapid acceleration, then saturation. Same mechanism producing acceleration produces deceleration \u2014 success breeds saturation.",
+      "when_to_use": "When growth has natural limits and follows S-shaped trajectory. Use for predicting adoption curves, skill development plateaus, market saturation timing.",
+      "key_concepts": [
+        "Three phases: lag, acceleration, saturation",
+        "Carrying capacity: the ceiling causing deceleration \u2014 every S-curve has one",
+        "Inflection point: where acceleration peaks and deceleration begins",
+        "Logistic growth: dP/dt = rP(1 - P/K) \u2014 growth proportional to remaining capacity",
+        "Stacked S-curves: new technologies create new curves before old ones saturate"
+      ],
+      "limitations": "Real S-curves are noisy \u2014 inflection point only visible in retrospect. Multiple interacting curves create complex dynamics.",
+      "applicable_dimensions": [
+        "health"
+      ]
+    },
+    {
+      "id": "feedback_loop",
+      "name": "Feedback Loop",
+      "source": "The Model Thinker / Systems Thinking (Meadows)",
+      "category": "systems",
+      "description": "Outputs circle back as inputs, creating self-reinforcing or self-correcting dynamics. Positive feedback amplifies deviations, negative feedback dampens them. Most interesting behavior emerges from feedback loops.",
+      "when_to_use": "When system behavior is driven by circular causality \u2014 A affects B which affects A. Use for habit formation, health management, organizational dynamics, any self-correcting or self-amplifying system.",
+      "key_concepts": [
+        "Positive (reinforcing) feedback: amplifies deviations \u2014 virtuous cycles or vicious spirals",
+        "Negative (balancing) feedback: dampens deviations \u2014 homeostasis, regulation",
+        "Delay in feedback: lag between action and consequence causes oscillation",
+        "Loop dominance: which loops are strongest determines system behavior",
+        "Leverage points: places where small changes produce large effects (Meadows)"
+      ],
+      "limitations": "Becomes intractable when many loops interact. Identifying 'right' loops is subjective. Delays make causal attribution difficult.",
+      "applicable_dimensions": [
+        "health"
+      ]
+    },
+    {
+      "id": "conservation",
+      "name": "Conservation",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "Resources neither created nor destroyed, only transformed. Reveals hidden constraints \u2014 time, energy, attention, money are finite, every allocation has opportunity cost.",
+      "when_to_use": "When resources are finite and every choice has a hidden cost. Use for time management, energy budgeting, attention allocation, any 'you can't have it all' constraint.",
+      "key_concepts": [
+        "Total resources are zero-sum \u2014 more here means less there",
+        "Opportunity cost: true cost of any choice is the best alternative foregone",
+        "Hidden conservation: when something seems free, look for invisible depletion",
+        "Budget constraints: feasible set is bounded \u2014 can't exceed the total",
+        "Thermodynamic analogy: energy can be transformed but not created \u2014 efficiency has limits"
+      ],
+      "limitations": "Not everything is conserved \u2014 knowledge and relationships can grow. Can lead to scarcity mindset when abundance exists. Some resources are renewable.",
+      "applicable_dimensions": [
+        "health"
+      ]
+    },
+    {
+      "id": "oscillator",
+      "name": "Oscillator",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "Rhythmic, repeating patterns \u2014 cycles, waves, periodic behavior. Describes circadian rhythms, economic cycles, mood fluctuations. Oscillation is natural and often healthy \u2014 absence of rhythm signals dysfunction.",
+      "when_to_use": "When behavior follows cyclical patterns and timing matters. Use for energy rhythms, scheduling around natural cycles, predicting performance peaks and troughs.",
+      "key_concepts": [
+        "Natural frequency: intrinsic rhythm \u2014 circadian (~24h), ultradian (~90min)",
+        "Entrainment: external cues synchronize internal oscillators",
+        "Phase: where you are in the cycle \u2014 different phase, different action needed",
+        "Amplitude: strength of oscillation \u2014 high = big swings, low = stability",
+        "Damping: oscillations that decay vs. sustained oscillations that persist"
+      ],
+      "limitations": "Real oscillators are noisy and quasi-periodic. Multiple overlapping oscillators create interference patterns. Entrainment disrupted by irregular schedules.",
+      "applicable_dimensions": [
+        "health",
+        "flow",
+        "chronobiology"
+      ]
+    },
+    {
+      "id": "discounted_cash_flow",
+      "name": "Discounted Cash Flow (DCF)",
+      "source": "Finance / The Model Thinker",
+      "category": "decision_making",
+      "description": "Values future cash flows by discounting to present value. A dollar today > a dollar tomorrow due to opportunity cost and uncertainty. Extends beyond finance \u2014 any future benefit can be discounted.",
+      "when_to_use": "When comparing costs/benefits at different times. Use for investment decisions, evaluating present sacrifice for future benefit, comparing projects with different time horizons.",
+      "key_concepts": [
+        "Present value: PV = FV / (1 + r)^t",
+        "Discount rate: captures opportunity cost and risk \u2014 higher rate = future counts less",
+        "NPV: sum of discounted cash flows \u2014 positive NPV means value creation",
+        "IRR: discount rate making NPV = 0 \u2014 breakeven cost of capital",
+        "Terminal value: value beyond forecast period \u2014 often dominates calculation"
+      ],
+      "limitations": "Extremely sensitive to discount rate and terminal value assumptions. Assumes predictable cash flows. Long-term forecasts are speculation in mathematical dress.",
+      "applicable_dimensions": [
+        "financial"
+      ]
+    },
+    {
+      "id": "capm",
+      "name": "Capital Asset Pricing Model (CAPM)",
+      "source": "Finance (Sharpe, Lintner, Mossin)",
+      "category": "decision_making",
+      "description": "Relates expected return to systematic risk. Only non-diversifiable risk earns a premium \u2014 diversifiable risk is free to eliminate. Reveals why diversification is powerful.",
+      "when_to_use": "When evaluating whether expected return compensates for risk. Use for portfolio construction, understanding diversification, comparing risk-adjusted returns.",
+      "key_concepts": [
+        "Beta (\u03b2): sensitivity to market \u2014 measures systematic risk",
+        "Security market line: expected return = risk-free rate + \u03b2 \u00d7 market risk premium",
+        "Diversification: idiosyncratic risk cancels in portfolios \u2014 only systematic remains",
+        "Alpha: return above CAPM prediction \u2014 measure of skill or mispricing",
+        "Risk-free rate: baseline return without risk \u2014 opportunity cost of risky investment"
+      ],
+      "limitations": "Assumes efficient markets and rational investors \u2014 both often violated. Beta from history may not predict future. Single-factor misses other risk dimensions.",
+      "applicable_dimensions": [
+        "financial"
+      ]
+    },
+    {
+      "id": "monte_carlo",
+      "name": "Monte Carlo Simulation",
+      "source": "The Model Thinker / Metropolis & Ulam (1949)",
+      "category": "probabilistic",
+      "description": "Uses random sampling to estimate outcomes under uncertainty. Runs thousands of plausible scenarios and counts what happens. Reveals full distribution of outcomes, exposing tail risks deterministic models miss.",
+      "when_to_use": "When uncertainty is deep and analytical solutions intractable. Use for financial planning, project timeline estimation, risk analysis, any decision where outcome range matters more than expected value.",
+      "key_concepts": [
+        "Random sampling: draw from probability distributions for plausible scenarios",
+        "Law of large numbers: more samples \u2192 more accurate \u2014 convergence to true distribution",
+        "Confidence intervals: reveals full range, not just the mean",
+        "Tail risk: rare catastrophic outcomes that deterministic models miss",
+        "Variance reduction: techniques improving accuracy with fewer samples"
+      ],
+      "limitations": "Only as good as input distributions \u2014 garbage in, garbage out. Computationally expensive for high dimensions. Rare events may be undersampled.",
+      "applicable_dimensions": [
+        "financial"
+      ]
+    },
+    {
+      "id": "satisficing",
+      "name": "Satisficing",
+      "source": "Herbert Simon / The Model Thinker",
+      "category": "decision_making",
+      "description": "Choose the first option meeting a threshold of acceptability, rather than exhaustively searching for optimal. Search is costly, information incomplete, cognitive resources finite. Good enough now often beats perfect later.",
+      "when_to_use": "When cost of finding optimal exceeds benefit of optimality over adequacy. Use for decisions under time pressure, numerous options, decision fatigue, any 'good enough' situation.",
+      "key_concepts": [
+        "Aspiration level: threshold defining 'good enough' \u2014 adjustable based on experience",
+        "Bounded rationality: can't optimize because information and computation are limited",
+        "Satisficing vs. maximizing: satisficers stop at first acceptable, maximizers search exhaustively",
+        "Adaptive aspiration: raise bar after success, lower after failure",
+        "Paradox of choice: more options worsen outcomes when maximizing, not when satisficing"
+      ],
+      "limitations": "Can produce suboptimal choices when first acceptable option is far from optimal. Aspiration levels may be miscalibrated. Doesn't work well when options are irreversible.",
+      "applicable_dimensions": [
+        "financial",
+        "goals",
+        "metacognition",
+        "decision_fatigue"
+      ]
+    },
+    {
+      "id": "multi_objective",
+      "name": "Multi-Objective Optimization",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "decision_making",
+      "description": "Making decisions when multiple objectives conflict and can't be simultaneously optimized. Reveals tradeoffs, Pareto frontiers, why 'best' is undefined with multiple criteria.",
+      "when_to_use": "When competing objectives can't all be maximized. Use for career decisions, resource allocation, any situation where optimizing one dimension degrades another.",
+      "key_concepts": [
+        "Pareto frontier: solutions where no objective can improve without another worsening",
+        "Tradeoff curves: visualizing how improving one objective requires sacrificing another",
+        "Scalarization: converting multiple objectives to one via weighted sum \u2014 weights are subjective",
+        "Constraint method: optimize one objective while constraining others to minimums",
+        "Dominance: A dominates B if better on all objectives \u2014 dominated solutions never optimal"
+      ],
+      "limitations": "Choosing among Pareto-optimal solutions requires value judgments model can't make. Scalarization weights are arbitrary. Pareto frontier can be enormous.",
+      "applicable_dimensions": [
+        "goals",
+        "meaning"
+      ]
+    },
+    {
+      "id": "value_function",
+      "name": "Value Function",
+      "source": "The Model Thinker / Prospect Theory (Kahneman & Tversky)",
+      "category": "decision_making",
+      "description": "How people subjectively value outcomes. S-shaped: concave for gains, convex for losses, steeper for losses than gains (loss aversion). Explains why losses loom larger than gains and framing effects occur.",
+      "when_to_use": "When understanding how people perceive and choose among risky options. Use for explaining risk-aversion for gains but risk-seeking for losses, framing effects, incentive design.",
+      "key_concepts": [
+        "Loss aversion: losses hurt ~2x more than equivalent gains feel good",
+        "Reference dependence: value measured relative to reference point, not absolute",
+        "Diminishing sensitivity: $100\u2192$200 feels larger than $1100\u2192$1200",
+        "Endowment effect: owning raises subjective value \u2014 giving up feels like a loss",
+        "Framing effects: same outcome as gain vs. loss produces different choices"
+      ],
+      "limitations": "Descriptive not prescriptive \u2014 describes how people do choose, not how they should. Reference points are context-dependent. 2x loss aversion varies across domains.",
+      "applicable_dimensions": [
+        "goals",
+        "meaning"
+      ]
+    },
+    {
+      "id": "path_dependency",
+      "name": "Path Dependency",
+      "source": "The Model Thinker / Arthur (1994)",
+      "category": "systems",
+      "description": "Outcomes depend on sequence of events that led to them, not just current conditions. History matters: early random events can lock in outcomes regardless of later optimization.",
+      "when_to_use": "When early choices/events have outsized influence on long-term outcomes. Use for technological lock-in, career trajectory effects, first-mover advantage.",
+      "key_concepts": [
+        "Increasing returns: early advantages compound \u2014 success breeds more success",
+        "Lock-in: once a path is chosen, switching costs make alternatives impractical",
+        "QWERTY effect: suboptimal standards persist because switching costs exceed efficiency gains",
+        "Critical junctures: moments where small events have large, irreversible consequences",
+        "Multiple equilibria: different paths lead to different stable states"
+      ],
+      "limitations": "Hard to distinguish from structural constraints ex post. Not all history matters. Can be post-hoc rationalization rather than predictive.",
+      "applicable_dimensions": [
+        "goals"
+      ]
+    },
+    {
+      "id": "redundancy",
+      "name": "Redundancy",
+      "source": "The Model Thinker / Engineering Reliability",
+      "category": "systems",
+      "description": "Duplicate components provide fault tolerance. If any single component can fail, backups prevent system failure. Trades efficiency for resilience \u2014 wasteful until essential.",
+      "when_to_use": "When system failure is costly and components unreliable. Use for infrastructure design, data backup, service architecture, any domain where failure cost exceeds duplication cost.",
+      "key_concepts": [
+        "N+1 redundancy: one more than minimum \u2014 survives single failure",
+        "N+2 redundancy: survives two simultaneous failures",
+        "Active vs. passive: active share load; passive wait as hot spares",
+        "Common-mode failure: same cause takes out all copies simultaneously",
+        "Reliability-cost tradeoff: each additional component improves reliability less than the last"
+      ],
+      "limitations": "Adds complexity, cost, maintenance burden. Common-mode failures defeat redundancy. Over-redundancy creates complacency.",
+      "applicable_dimensions": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "reliability",
+      "name": "Reliability",
+      "source": "The Model Thinker / Engineering",
+      "category": "systems",
+      "description": "Quantifying and improving probability that a system performs its function under stated conditions for a stated period. Connects component failure rates to system-level outcomes.",
+      "when_to_use": "When understanding or improving likelihood of system success over time. Use for service uptime, infrastructure design, SLA design.",
+      "key_concepts": [
+        "Series systems: reliability = product of component reliabilities \u2014 one failure kills chain",
+        "Parallel systems: reliability = 1 - product of failure probabilities \u2014 survives single failures",
+        "MTBF: mean time between failures \u2014 average uptime, higher is better",
+        "MTTR: mean time to repair \u2014 average downtime, lower is better",
+        "Availability = MTBF / (MTBF + MTTR): probability system is working when needed"
+      ],
+      "limitations": "Assumes independent component failures \u2014 often doesn't hold. MTBF misunderstood as 'time until failure'. Aging effects complicate constant failure rate assumptions.",
+      "applicable_dimensions": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "cascade",
+      "name": "Cascade",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "One event triggers a chain of similar events, creating cascading failures or successes. Explains systemic risk \u2014 interconnections allow local failures to propagate globally.",
+      "when_to_use": "When failures/successes can propagate through interconnected systems. Use for systemic risk, diversification strategy, contagion analysis, circuit breaker design.",
+      "key_concepts": [
+        "Contagion: spread of failure from one component to connected components",
+        "Circuit breakers: mechanisms stopping propagation \u2014 firebreaks, trading halts",
+        "Systemic risk: individual failures threaten entire system \u2014 'too connected to fail'",
+        "Cascade vs. independent failure: cascades produce correlated failures overwhelming redundancy",
+        "Percolation threshold: connectivity level above which cascades become possible"
+      ],
+      "limitations": "Sensitive to network structure assumptions. Predicting specific cascading failures is extremely difficult. Circuit breakers may stop legitimate propagation.",
+      "applicable_dimensions": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "sandpile",
+      "name": "Sandpile / Self-Organized Criticality",
+      "source": "The Model Thinker / Per Bak",
+      "category": "systems",
+      "description": "Systems naturally evolve to critical state where any perturbation can produce events of any size \u2014 including catastrophic. Explains power-law distributions in earthquakes, market crashes, infrastructure failures.",
+      "when_to_use": "When small perturbations occasionally produce outsized consequences and power-law distributions appear. Use for understanding why catastrophic failures are inevitable, why resilience matters more than prevention.",
+      "key_concepts": [
+        "Self-organized criticality: systems naturally evolve to critical state without external tuning",
+        "Power-law distributions: event sizes follow scale-free pattern \u2014 no characteristic scale",
+        "Avalanche sizes: most perturbations produce small avalanches, rare ones can be catastrophic",
+        "Critical state: always near tipping point \u2014 stability is illusory",
+        "Prevention vs. resilience: preventing all failures impossible; design for graceful failure"
+      ],
+      "limitations": "Not all systems exhibit self-organized criticality \u2014 requires statistical evidence. Descriptive not predictive. Intervention points unclear.",
+      "applicable_dimensions": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "emergence",
+      "name": "Emergence",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "Macro-level patterns arise from micro-level interactions that don't contain the pattern themselves. Wetness isn't a property of any single water molecule, consciousness isn't in any single neuron.",
+      "when_to_use": "When system-level behavior can't be understood by studying components in isolation. Use for organizational culture, market dynamics, ecosystem behavior.",
+      "key_concepts": [
+        "Weak emergence: macro patterns surprising but derivable from micro rules (in principle)",
+        "Strong emergence: macro patterns fundamentally irreducible to micro rules (controversial)",
+        "Self-organization: order arises without central control \u2014 from local interactions",
+        "Feedback between levels: macro patterns shape micro behavior reinforcing macro patterns",
+        "Reductionism limit: understanding parts doesn't guarantee understanding the whole"
+      ],
+      "limitations": "Often invoked as explanation when it's really description. Can become catch-all that obscures rather than illuminates. Weak vs. strong emergence is philosophically contested.",
+      "applicable_dimensions": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "agent_based",
+      "name": "Agent-Based Model",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "computational",
+      "description": "Autonomous agents follow simple rules and interact, producing complex emergent behavior. Reveals how macro patterns arise from micro rules, why heterogeneous agents produce different outcomes than representative agents.",
+      "when_to_use": "When understanding how individual-level rules produce system-level outcomes, especially with heterogeneity, local interactions, and adaptation. Use for market dynamics, organizational behavior.",
+      "key_concepts": [
+        "Heterogeneous agents: individuals differ in rules, preferences, initial conditions",
+        "Local interactions: agents interact with neighbors \u2014 spatial structure matters",
+        "Simple rules, complex outcomes: Schelling's model \u2014 mild preferences produce extreme segregation",
+        "Path dependence: random seed matters \u2014 different runs produce different histories",
+        "Validation challenge: many parameterizations can produce same macro outcome"
+      ],
+      "limitations": "Computationally expensive and difficult to validate. Equifinality \u2014 many parameterizations produce same outcome. Better for hypotheses than precise predictions.",
+      "applicable_dimensions": [
+        "infrastructure"
+      ]
+    },
+    {
+      "id": "heuristic",
+      "name": "Heuristic",
+      "source": "The Model Thinker / Gigerenzer",
+      "category": "decision_making",
+      "description": "Simple rules that perform well in specific environments. Not irrational shortcuts \u2014 adaptive strategies exploiting environmental structure. Recognition heuristic, take-the-best, and tallying often outperform complex models by avoiding overfitting.",
+      "when_to_use": "When simple rules can exploit environmental structure and complex models risk overfitting. Use for fast decisions under uncertainty, sparse data, limited cognitive resources.",
+      "key_concepts": [
+        "Recognition heuristic: choose recognized option over unrecognized",
+        "Take-the-best: consider cues in validity order, stop at first discriminating cue",
+        "Tallying: count favorable cues without weighting \u2014 often as good as weighted regression",
+        "Less-is-more: simple heuristics outperform complex models in noisy environments",
+        "Ecological rationality: heuristic performance depends on environment structure, not model complexity"
+      ],
+      "limitations": "Fail when environment doesn't match assumptions. Can produce systematic biases. Knowing which heuristic fits which environment requires domain expertise.",
+      "applicable_dimensions": [
+        "metacognition",
+        "decision_fatigue"
+      ]
+    },
+    {
+      "id": "fitness",
+      "name": "Fitness Landscape",
+      "source": "The Model Thinker / Wright (1932)",
+      "category": "systems",
+      "description": "Solutions map to a landscape of peaks and valleys. Reveals why local optima trap search, why rugged landscapes require exploration, why highest peak isn't always reachable.",
+      "when_to_use": "When evaluating solutions where quality varies and local improvements can trap you. Use for career optimization, skill development, product design.",
+      "key_concepts": [
+        "Local optima: peaks that aren't highest \u2014 gradient ascent gets stuck",
+        "Global optimum: highest peak \u2014 may be unreachable from current position",
+        "Rugged vs. smooth: many peaks require exploration; one peak allows hill-climbing",
+        "Kauffman's NK model: N components with K interdependencies \u2014 higher K = more rugged",
+        "Adaptive walk: incremental improvement \u2014 finds local peak but can't cross valleys"
+      ],
+      "limitations": "High-dimensional and impossible to visualize. Landscape may change as you search (coevolution). Defining 'fitness' is subjective and domain-dependent.",
+      "applicable_dimensions": [
+        "flow"
+      ]
+    },
+    {
+      "id": "control_theory",
+      "name": "Control Theory",
+      "source": "The Model Thinker / Engineering",
+      "category": "systems",
+      "description": "Keeping systems at desired states despite disturbances. Mathematical framework for feedback control: measure output, compare to target, adjust input. PID controllers, gain tuning, stability analysis.",
+      "when_to_use": "When maintaining a system at target state despite perturbations. Use for habit maintenance, energy management, workflow optimization, any domain where regulation matters more than raw optimization.",
+      "key_concepts": [
+        "PID controller: Proportional (current error), Integral (accumulated), Derivative (rate of change)",
+        "Gain: how aggressively controller responds \u2014 too high = oscillation, too low = sluggish",
+        "Stability: system returns to target after disturbance \u2014 Bode plots, Nyquist criteria",
+        "Feedforward: anticipate disturbances before they occur \u2014 proactive vs. reactive",
+        "Robustness: maintaining performance despite model uncertainty \u2014 H-infinity control"
+      ],
+      "limitations": "Assumes linear or linearizable systems \u2014 real systems often aren't. Requires measurable outputs and adjustable inputs. Over-engineering control creates brittleness.",
+      "applicable_dimensions": [
+        "flow"
+      ]
+    },
+    {
+      "id": "reinforcement_learning",
+      "name": "Reinforcement Learning",
+      "source": "The Model Thinker / Sutton & Barto",
+      "category": "computational",
+      "description": "Agent learns optimal behavior through trial and error, receiving rewards and penalties. Reveals explore-exploit dilemma in purest form, why delayed rewards make learning hard, how credit assignment works.",
+      "when_to_use": "When learning from experience rather than labeled examples. Use for habit formation strategy, understanding why immediate feedback accelerates learning, designing reward structures.",
+      "key_concepts": [
+        "Explore-exploit dilemma: try new actions vs. use known good ones",
+        "Temporal credit assignment: which past action caused current reward?",
+        "Delayed rewards: long gaps between action and outcome make learning harder",
+        "Policy vs. value: what to do (policy) vs. how good a state is (value)",
+        "Exploration bonuses: intrinsic motivation to visit novel states \u2014 curiosity-driven learning"
+      ],
+      "limitations": "Struggles with sparse rewards \u2014 rare feedback means slow learning. Credit assignment in long sequences is extremely difficult. Reward hacking: agents find unexpected ways to maximize reward.",
+      "applicable_dimensions": [
+        "flow",
+        "habits"
+      ]
+    },
+    {
+      "id": "circadian",
+      "name": "Circadian Rhythm",
+      "source": "Chronobiology / Satchidananda Panda",
+      "category": "systems",
+      "description": "~24-hour internal clock regulating sleep-wake cycles, hormone release, body temperature, cognitive performance. Endogenous but entrainable (synchronized by light, meals, social cues). Disruption causes measurable performance degradation.",
+      "when_to_use": "When timing of activities matters for performance, health, or safety. Use for scheduling demanding work during peak alertness, understanding why shift work is harmful, optimizing sleep and meal timing.",
+      "key_concepts": [
+        "Suprachiasmatic nucleus (SCN): master clock in hypothalamus entrained by light",
+        "Circadian alignment: performance peaks when activity matches internal clock phase",
+        "Phase response curve: light at different times advances or delays the clock",
+        "Social jetlag: misalignment between biological and social clocks \u2014 measurable cognitive cost",
+        "Chronotype: individual variation in peak timing \u2014 morning larks vs. night owls"
+      ],
+      "limitations": "Individual chronotype variation is large \u2014 one-size-fits-all schedules are suboptimal. Light exposure timing is critical but often uncontrollable. Shift work creates chronic misalignment.",
+      "applicable_dimensions": [
+        "chronobiology",
+        "health"
+      ]
+    },
+    {
+      "id": "temporal_dynamics",
+      "name": "Temporal Dynamics",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "probabilistic",
+      "description": "How systems change over time \u2014 dynamics, rates, and trajectories. Reveals why timing matters, why rates of change are as important as directions, why the path through time constrains future possibilities.",
+      "when_to_use": "When understanding how a system evolves and timing matters. Use for predicting when changes will occur, understanding rate-dependent effects, any domain where 'when' and 'how fast' matter.",
+      "key_concepts": [
+        "Rate of change: how fast a variable moves \u2014 often more important than current level",
+        "Trajectory: the path through state space over time \u2014 history matters",
+        "Equilibrium dynamics: how quickly a system reaches (or oscillates around) steady state",
+        "Time constants: characteristic timescales \u2014 fast vs. slow dynamics",
+        "Non-stationarity: when the rules themselves change over time \u2014 the model must adapt"
+      ],
+      "limitations": "Requires knowing timescales, which are often uncertain. Non-stationarity makes historical data unreliable. Multiple overlapping timescales create complex dynamics.",
+      "applicable_dimensions": [
+        "chronobiology"
+      ]
+    },
+    {
+      "id": "optimization",
+      "name": "Optimization",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "computational",
+      "description": "Finding the best solution from a set of alternatives subject to constraints. Reveals tradeoffs between objectives, why constraints shape solutions, why 'optimal' depends critically on what you're optimizing.",
+      "when_to_use": "When choosing the best option from many alternatives. Use for resource allocation, scheduling, portfolio construction, any domain where you can define an objective and constraints.",
+      "key_concepts": [
+        "Objective function: what you're maximizing or minimizing \u2014 defines 'best'",
+        "Constraints: what must be satisfied \u2014 defines the feasible set",
+        "Convex vs. non-convex: convex has single global optimum; non-convex has many local optima",
+        "Gradient-based methods: follow the slope \u2014 efficient for smooth landscapes",
+        "Constraint relaxation: loosening constraints reveals which ones are binding"
+      ],
+      "limitations": "Requires defining objective function and constraints \u2014 both subjective. Local optima trap gradient methods. Real problems are often non-convex. Optimization can overfit to specified objective.",
+      "applicable_dimensions": [
+        "chronobiology"
+      ]
+    },
+    {
+      "id": "centrality",
+      "name": "Centrality",
+      "source": "The Model Thinker / Network Science",
+      "category": "structural",
+      "description": "Measures of node importance within a network. Different measures capture different notions of importance: most connections (degree), controls information flow (betweenness), closest to everyone (closeness), connected to important nodes (eigenvector).",
+      "when_to_use": "When identifying key actors in a network. Use for finding influencers, bottlenecks, gatekeepers, vulnerable points in social, communication, or infrastructure networks.",
+      "key_concepts": [
+        "Degree centrality: number of connections \u2014 who talks to most people",
+        "Betweenness centrality: on shortest paths between others \u2014 who controls information flow",
+        "Closeness centrality: average distance to all others \u2014 who can reach everyone fastest",
+        "Eigenvector centrality: connected to other central nodes \u2014 who knows important people",
+        "PageRank: eigenvector centrality with random jumps \u2014 Google's web page importance"
+      ],
+      "limitations": "Different measures can identify different 'most important' nodes. Centrality is relative to network structure. Doesn't capture dynamics, only structure.",
+      "applicable_dimensions": [
+        "social_capital"
+      ]
+    },
+    {
+      "id": "community_detection",
+      "name": "Community Detection",
+      "source": "The Model Thinker / Network Science",
+      "category": "computational",
+      "description": "Identifying groups of nodes that are more densely connected internally than externally. Reveals modular structure of networks \u2014 subgroups, clusters, and boundaries not visible in the raw edge list.",
+      "when_to_use": "When discovering natural groupings in network data. Use for identifying social circles, organizational subgroups, topic clusters in citation networks.",
+      "key_concepts": [
+        "Modularity: fraction of within-community edges minus expected fraction under random wiring",
+        "Louvain algorithm: greedy modularity optimization \u2014 fast and widely used",
+        "Overlapping communities: nodes can belong to multiple groups \u2014 most real communities overlap",
+        "Hierarchical communities: groups nest within larger groups \u2014 multiscale structure",
+        "Resolution limit: modularity optimization may miss small communities or merge large ones"
+      ],
+      "limitations": "Modularity optimization has resolution limits. Ground truth for 'real' communities often doesn't exist. Different algorithms find different community structures.",
+      "applicable_dimensions": [
+        "social_capital"
+      ]
+    },
+    {
+      "id": "meaning_mapping",
+      "name": "Meaning Mapping",
+      "source": "Positive Psychology / Seligman",
+      "category": "decision_making",
+      "description": "Mapping what gives life meaning across dimensions: purpose (direction), coherence (understanding), significance (mattering). Meaning isn't found \u2014 it's constructed from aligning actions with values and contributing beyond self.",
+      "when_to_use": "When evaluating whether activities, goals, or choices align with what gives life meaning. Use for career decisions, priority setting, understanding burnout as meaning deficit, any 'why am I doing this?' question.",
+      "key_concepts": [
+        "Purpose: having a direction that gives life forward momentum \u2014 not a destination but a compass",
+        "Coherence: understanding how life events fit together \u2014 narrative identity",
+        "Significance: believing your existence matters to others \u2014 social belonging and impact",
+        "Values clarification: identifying what you genuinely care about vs. what you've been told to care about",
+        "Meaning vs. happiness: meaning involves challenge and sometimes suffering; happiness seeks comfort"
+      ],
+      "limitations": "Meaning is subjective and culturally dependent \u2014 no universal formula. Can be used to justify suffering that should actually be alleviated. Over-intellectualizing meaning can undermine the felt experience.",
+      "applicable_dimensions": [
+        "meaning"
+      ]
+    },
+    {
+      "id": "purpose_alignment",
+      "name": "Purpose Alignment",
+      "source": "Purpose Economy / Hurst",
+      "category": "decision_making",
+      "description": "Aligning daily actions with a larger sense of purpose. Reveals misalignment between what you do and why you do it, provides framework for closing that gap through incremental adjustment rather than dramatic reinvention.",
+      "when_to_use": "When daily activities feel disconnected from what matters. Use for career alignment, identifying which tasks to delegate vs. own, understanding why burnout occurs despite 'success.'",
+      "key_concepts": [
+        "Purpose statement: concise articulation of why your work matters \u2014 not a job description",
+        "Alignment audit: mapping time spent vs. purpose served \u2014 revealing misallocation",
+        "Micro-purpose: finding purpose in small moments, not just grand missions",
+        "Purpose decay: purposes shift over time \u2014 what felt meaningful at 25 may not at 40",
+        "Purpose portfolio: multiple purposes across life domains \u2014 diversification against meaning loss"
+      ],
+      "limitations": "Purpose can be a luxury when basic needs aren't met. Over-optimizing for purpose can create anxiety about 'wasting time.' Purpose statements can become performative rather than authentic.",
+      "applicable_dimensions": [
+        "meaning"
+      ]
+    },
+    {
+      "id": "habit_loop",
+      "name": "Habit Loop",
+      "source": "Atomic Habits (James Clear) / Duhigg",
+      "category": "behavioral",
+      "description": "Cue \u2192 Craving \u2192 Response \u2192 Reward. Explains why habits form, why they persist, and how to change them. Habits are automatic behavioral programs triggered by contextual cues, not conscious decisions.",
+      "when_to_use": "When forming new habits or breaking old ones. Use for any behavior change goal, understanding why willpower fails, designing environments that make desired behaviors automatic.",
+      "key_concepts": [
+        "Cue: the trigger that initiates the behavior \u2014 time, place, emotional state, preceding action",
+        "Craving: the motivation behind the habit \u2014 every habit solves a problem you have",
+        "Response: the actual behavior \u2014 depends on friction and capability",
+        "Reward: what you get \u2014 satisfies the craving and teaches the brain to remember",
+        "Identity-based habits: 'I am a runner' beats 'I want to run' \u2014 change who you are, not what you do"
+      ],
+      "limitations": "Habit loops are deeply ingrained and resistant to conscious override. Environmental cues are often invisible. Breaking habits requires replacing the routine, not just stopping it.",
+      "applicable_dimensions": [
+        "habits"
+      ]
+    },
+    {
+      "id": "behavior_change",
+      "name": "Behavior Change",
+      "source": "Fogg Behavior Model / COM-B",
+      "category": "behavioral",
+      "description": "Behavior = Motivation \u00d7 Ability \u00d7 Prompt (Fogg). Behavior occurs when all three are present simultaneously. Deconstructs 'why didn't I do X?' into specific fixable components.",
+      "when_to_use": "When trying to make a behavior happen or understanding why it isn't. Use for habit design, adoption of new tools/practices, understanding resistance to change, any 'I know I should but I don't' situation.",
+      "key_concepts": [
+        "Motivation: pleasure/pain, hope/fear, social acceptance/rejection \u2014 must be sufficient",
+        "Ability: time, money, physical effort, brain cycles, social deviance, routine disruption \u2014 reduce friction",
+        "Prompt: cue, trigger, or reminder \u2014 must be present at the right moment",
+        "Fogg's maxim: 'Make it easy' \u2014 reducing ability barriers beats increasing motivation",
+        "Tiny habits: start with a version so small it requires almost no motivation \u2014 then grow"
+      ],
+      "limitations": "Doesn't account for systemic barriers that make ability impossible regardless of motivation. Motivation is volatile \u2014 designs relying on sustained motivation fail. Cultural context affects all three components.",
+      "applicable_dimensions": [
+        "habits"
+      ]
+    },
+    {
+      "id": "foggs_behavior_model",
+      "name": "Fogg's Behavior Model",
+      "source": "Tiny Habits (BJ Fogg)",
+      "category": "behavioral",
+      "description": "B=MAP: Behavior occurs when Motivation, Ability, and Prompt converge simultaneously. The action line divides possible from impossible: above the line, a prompt triggers behavior; below, it doesn't. Ability is easier to manipulate than motivation.",
+      "when_to_use": "When designing behavior change interventions. Use for habit formation, product adoption, health behavior change, any domain where 'just do it' fails.",
+      "key_concepts": [
+        "B=MAP formula: behavior = motivation \u00d7 ability \u00d7 prompt \u2014 all three required",
+        "Action line: threshold above which prompts succeed \u2014 depends on motivation-ability combination",
+        "Ability anchors: time, money, physical effort, brain cycles, social deviance, non-routine",
+        "Motivation waves: motivation spikes and crashes \u2014 design for low-motivation moments",
+        "Celebration: immediately acknowledging success wires the brain \u2014 'shine' moment creates habit"
+      ],
+      "limitations": "Oversimplifies complex behaviors into three factors. Doesn't model habit formation over time \u2014 it's a single-event model. Cultural and systemic factors are backgrounded.",
+      "applicable_dimensions": [
+        "habits"
+      ]
+    },
+    {
+      "id": "multi_armed_bandit",
+      "name": "Multi-Armed Bandit",
+      "source": "The Model Thinker / Decision Theory",
+      "category": "decision_making",
+      "description": "Balancing exploration of unknown options with exploitation of known good ones. Captures the fundamental dilemma of learning under uncertainty: every choice to explore is a choice not to exploit, and vice versa.",
+      "when_to_use": "When you must choose between known good options and potentially better unknown ones. Use for career exploration, A/B testing, research direction selection, any 'should I try something new or stick with what works?' decision.",
+      "key_concepts": [
+        "Explore-exploit tradeoff: trying new options vs. using known best \u2014 the core dilemma",
+        "Regret minimization: optimal strategies minimize total regret over time",
+        "\u03b5-greedy: explore with probability \u03b5, exploit with probability 1-\u03b5 \u2014 simple but effective",
+        "Upper confidence bound: choose option with highest plausible value \u2014 optimistic in face of uncertainty",
+        "Thompson sampling: choose probabilistically based on posterior \u2014 Bayesian approach"
+      ],
+      "limitations": "Assumes stationary reward distributions \u2014 real options may change over time. Doesn't model switching costs. Optimal strategy depends on time horizon, which is often unknown.",
+      "applicable_dimensions": [
+        "decision_fatigue",
+        "metacognition"
+      ]
+    },
+    {
+      "id": "model_of_models",
+      "name": "Model of Models",
+      "source": "The Model Thinker (Scott E. Page)",
+      "category": "systems",
+      "description": "The meta-framework: use many models because no single model captures reality. Wisdom comes not from finding the one right model but from knowing which models apply when and combining their insights. Each model is a lens; many lenses reveal more than one.",
+      "when_to_use": "When facing complex problems that resist single-model analysis. Use as the default approach for any non-trivial decision \u2014 always ask 'what other models apply?' before committing to one framework.",
+      "key_concepts": [
+        "Many-model thinking: use multiple models because reality is too complex for any one",
+        "Condorcet jury theorem: diverse independent models collectively outperform any individual",
+        "Model overlap and divergence: where models agree = confidence; where they disagree = investigation needed",
+        "Wisdom hierarchy: data \u2192 information \u2192 knowledge \u2192 wisdom \u2014 models accelerate the climb",
+        "The cat heuristic: 'all models are wrong, but some are useful' (Box) \u2014 seek usefulness, not truth"
+      ],
+      "limitations": "Requires knowing multiple models \u2014 a knowledge investment. Integration of conflicting model outputs requires judgment. Can lead to analysis paralysis. Some problems genuinely have one best model.",
+      "applicable_dimensions": [
+        "metacognition"
+      ]
+    },
+    {
+      "id": "priority_queue",
+      "name": "Priority Queue",
+      "source": "Computer Science / The Model Thinker",
+      "category": "computational",
+      "description": "A data structure that always gives you the most important item next. Priority queues model how to allocate attention when everything is urgent but not everything is equally important. The key insight: processing order matters as much as processing speed.",
+      "when_to_use": "When you must decide what to do next and not everything can be done now. Use for task prioritization, triage, notification management, any domain where ordering decisions have consequence.",
+      "key_concepts": [
+        "Priority inversion: when a low-priority task blocks a high-priority one \u2014 deadly in real-time systems",
+        "Dynamic priorities: priorities change as deadlines approach \u2014 urgency increases over time",
+        "Starvation: low-priority items never get processed \u2014 need aging mechanisms",
+        "Multi-level queues: different priority classes for different task types",
+        "Heap efficiency: always get the highest-priority item in O(log n) \u2014 fast prioritization at scale"
+      ],
+      "limitations": "Priority assignment is subjective and often politicized. Static priorities miss urgency dynamics. Starvation of low-priority but important long-term tasks is a common failure mode.",
+      "applicable_dimensions": [
+        "attention"
+      ]
+    },
+    {
+      "id": "attention_mechanism",
+      "name": "Attention Mechanism",
+      "source": "Deep Learning / The Model Thinker",
+      "category": "information_processing",
+      "description": "A computational mechanism that learns where to focus processing. Attention mechanisms learn to weight different inputs by relevance, enabling models to focus on what matters for the current task while ignoring distractions.",
+      "when_to_use": "When you need to dynamically focus on the most relevant information in a changing context. Use for understanding how to allocate cognitive resources, designing notification systems, any domain where focus must shift with context.",
+      "key_concepts": [
+        "Query-key-value: what I want \u00d7 what's available \u2192 how much to attend to each",
+        "Self-attention: elements attend to each other \u2014 capturing relationships without sequential processing",
+        "Multi-head attention: multiple attention patterns simultaneously \u2014 different aspects of relevance",
+        "Attention weights: soft selection \u2014 attending to everything but with different intensity",
+        "Sparse attention: most things are irrelevant \u2014 efficient attention focuses on few items"
+      ],
+      "limitations": "Attention mechanisms can miss important but seemingly irrelevant information. They reflect training data biases. Computational cost scales quadratically with sequence length without optimizations.",
+      "applicable_dimensions": [
+        "attention"
+      ]
+    },
+    {
+      "id": "information_theory",
+      "name": "Information Theory",
+      "source": "The Model Thinker / Shannon (1948)",
+      "category": "information_processing",
+      "description": "Quantifying information content, transmission capacity, and the fundamental limits of communication. Information theory reveals how much signal can be extracted from noise, why compression has limits, and how entropy measures uncertainty.",
+      "when_to_use": "When quantifying information, uncertainty, or communication efficiency. Use for understanding data compression limits, measuring how informative a signal is, any domain where distinguishing signal from noise has mathematical limits.",
+      "key_concepts": [
+        "Entropy: H(X) = -\u03a3 p(x) log p(x) \u2014 measures uncertainty/surprise in a distribution",
+        "Mutual information: how much knowing X reduces uncertainty about Y \u2014 shared information",
+        "Channel capacity: maximum reliable communication rate \u2014 Shannon's theorem",
+        "Kolmogorov complexity: shortest program producing the data \u2014 measures intrinsic information content",
+        "Rate-distortion theory: how much information is preserved at a given compression level"
+      ],
+      "limitations": "Information theory measures quantity, not meaning \u2014 high entropy doesn't mean high value. Assumes known probability distributions, which are often unavailable. Doesn't capture semantic content.",
+      "applicable_dimensions": [
+        "attention"
+      ]
+    }
+  ]
+}
