@@ -27,6 +27,20 @@ def load_frameworks_data():
         data = json.load(f)
     return [Framework(**fw) for fw in data["frameworks"]]
 
+def save_frameworks_data(frameworks: List[Framework]):
+    """Save LIAM frameworks to JSON file."""
+    with open(FRAMEWORKS_DATA_PATH, 'r') as f:
+        data = json.load(f)
+    
+    data["frameworks"] = [fw.dict() for fw in frameworks]
+    
+    with open(FRAMEWORKS_DATA_PATH, 'w') as f:
+        json.dump(data, f, indent=2)
+    
+    # Invalidate cache
+    global _frameworks_cache
+    _frameworks_cache = None
+
 # Cache in memory
 _dimensions_cache = None
 _frameworks_cache = None
@@ -151,6 +165,37 @@ async def get_framework(framework_id: str):
         if fw.id == framework_id:
             return fw
     
+    raise HTTPException(status_code=404, detail=f"Framework '{framework_id}' not found")
+
+
+@router.post("/frameworks", response_model=Framework)
+async def create_framework(framework: Framework):
+    """Add a new LIAM framework."""
+    frameworks = get_frameworks()
+    
+    if any(fw.id == framework.id for fw in frameworks):
+        raise HTTPException(status_code=409, detail=f"Framework '{framework.id}' already exists")
+        
+    frameworks.append(framework)
+    save_frameworks_data(frameworks)
+    
+    return framework
+
+
+@router.put("/frameworks/{framework_id}", response_model=Framework)
+async def update_framework(framework_id: str, framework_update: Framework):
+    """Update an existing LIAM framework."""
+    if framework_id != framework_update.id:
+        raise HTTPException(status_code=400, detail="Framework ID in path must match body")
+        
+    frameworks = get_frameworks()
+    
+    for i, fw in enumerate(frameworks):
+        if fw.id == framework_id:
+            frameworks[i] = framework_update
+            save_frameworks_data(frameworks)
+            return framework_update
+            
     raise HTTPException(status_code=404, detail=f"Framework '{framework_id}' not found")
 
 
