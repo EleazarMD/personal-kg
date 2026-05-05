@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from liam_models import (
@@ -60,10 +61,47 @@ def get_frameworks() -> List[Framework]:
     return _frameworks_cache
 
 
+def _normalize_search_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def _framework_search_blob(framework: Framework) -> str:
+    return _normalize_search_text(" ".join([
+        framework.id,
+        framework.name,
+        framework.source,
+        framework.category,
+        framework.description,
+        framework.when_to_use,
+        framework.limitations,
+        " ".join(framework.key_concepts),
+        " ".join(framework.applicable_dimensions),
+    ]))
+
+
+def _dimension_search_blob(dimension: LIAMDimension) -> str:
+    return _normalize_search_text(" ".join([
+        dimension.id,
+        dimension.label,
+        dimension.short,
+        dimension.group.value,
+        dimension.description,
+        dimension.why_it_matters,
+        dimension.scientific_basis,
+        " ".join(dimension.model_thinker_models),
+        " ".join(dimension.key_insights),
+        " ".join(dimension.related_dimensions),
+    ]))
+
+
 @router.get("/dimensions", response_model=List[LIAMDimension])
 async def list_dimensions(
     group: Optional[DimensionGroup] = None,
-    status: Optional[DimensionStatus] = None
+    status: Optional[DimensionStatus] = None,
+    source: Optional[str] = None,
+    author: Optional[str] = None,
+    query: Optional[str] = None,
+    limit: int = 100
 ):
     """Get all LIAM dimensions, optionally filtered."""
     dimensions = get_dimensions()
@@ -73,8 +111,20 @@ async def list_dimensions(
     
     if status:
         dimensions = [d for d in dimensions if d.status == status]
+
+    source_filter = author or source
+    if source_filter:
+        source_lower = source_filter.lower()
+        dimensions = [d for d in dimensions if source_lower in d.scientific_basis.lower()]
+
+    if query:
+        query_terms = set(_normalize_search_text(query).split())
+        dimensions = [
+            d for d in dimensions
+            if query_terms and query_terms.issubset(set(_dimension_search_blob(d).split()))
+        ]
     
-    return dimensions
+    return dimensions[:max(1, min(limit, 500))]
 
 
 @router.get("/dimensions/{dimension_id}", response_model=LIAMDimension)
@@ -142,18 +192,35 @@ async def query_applicable_dimensions(query: DimensionQuery):
 @router.get("/frameworks", response_model=List[Framework])
 async def list_frameworks(
     category: Optional[str] = None,
-    dimension: Optional[str] = None
+    dimension: Optional[str] = None,
+    source: Optional[str] = None,
+    author: Optional[str] = None,
+    query: Optional[str] = None,
+    limit: int = 100
 ):
-    """Get all LIAM frameworks, optionally filtered by category or dimension."""
+    """Get all LIAM frameworks, optionally filtered by category, dimension, source/author, or query."""
     frameworks = get_frameworks()
     
     if category:
-        frameworks = [f for f in frameworks if f.category == category]
+        category_lower = category.lower()
+        frameworks = [f for f in frameworks if f.category.lower() == category_lower]
     
     if dimension:
         frameworks = [f for f in frameworks if dimension in f.applicable_dimensions]
+
+    source_filter = author or source
+    if source_filter:
+        source_lower = source_filter.lower()
+        frameworks = [f for f in frameworks if source_lower in f.source.lower()]
+
+    if query:
+        query_terms = set(_normalize_search_text(query).split())
+        frameworks = [
+            f for f in frameworks
+            if query_terms and query_terms.issubset(set(_framework_search_blob(f).split()))
+        ]
     
-    return frameworks
+    return frameworks[:max(1, min(limit, 500))]
 
 
 @router.get("/frameworks/{framework_id}", response_model=Framework)

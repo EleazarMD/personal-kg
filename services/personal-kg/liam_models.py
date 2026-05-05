@@ -9,6 +9,7 @@ class DimensionGroup(str, Enum):
     """LIAM dimension groups."""
     CORE = "core"
     COGNITIVE = "cognitive"
+    RISK_MANAGEMENT = "risk_management"
 
 
 class DimensionStatus(str, Enum):
