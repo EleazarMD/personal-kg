@@ -383,6 +383,213 @@
         {"name": "Habit stacking design", "status": "future"},
         {"name": "Environment optimization", "status": "future"}
       ]
+    },
+    {
+      "id": "antifragility",
+      "label": "Antifragility & Resilience",
+      "short": "Antifragile",
+      "icon": "📈",
+      "accent": "#E53E3E",
+      "group": "risk_management",
+      "description": "Designing systems and habits that gain from disorder, volatility, and stress rather than just surviving them.",
+      "why_it_matters": "In complex, unpredictable environments, merely being robust is insufficient. Antifragile systems grow stronger from shocks, turning uncertainty into an advantage.",
+      "scientific_basis": "Nassim Taleb's Incerto series. Antifragility is the property of systems that increase in capability or resilience as a result of stressors, shocks, volatility, noise, mistakes, faults, attacks, or failures.",
+      "model_thinker_models": ["Volatility Gain", "Hormesis", "Evolution", "Convexity"],
+      "key_insights": [
+        "Overcompensation to stress builds excess capacity",
+        "Depriving systems of volatility makes them fragile",
+        "Failures at the micro level protect the macro level"
+      ],
+      "related_dimensions": ["black_swan", "infrastructure", "health"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Stress testing routines", "status": "planned"},
+        {"name": "Volatility harvesting", "status": "future"}
+      ]
+    },
+    {
+      "id": "black_swan",
+      "label": "Black Swan Mitigation",
+      "short": "Black Swan",
+      "icon": "🦢",
+      "accent": "#1A202C",
+      "group": "risk_management",
+      "description": "Managing exposure to highly improbable, unpredictable events with massive impact.",
+      "why_it_matters": "Traditional risk models underestimate extreme tail risks. Preparing for the unknown prevents catastrophic ruin while exposing oneself to positive asymmetric opportunities.",
+      "scientific_basis": "Nassim Taleb's Black Swan Theory. Highlights the severe limitations of standard probability distributions in Extremistan, where single events disproportionately impact the aggregate.",
+      "model_thinker_models": ["Fat Tails", "Extremistan", "Asymmetry", "Epistemic Arrogance"],
+      "key_insights": [
+        "Predictions are dangerous in complex systems",
+        "Maximize exposure to positive Black Swans",
+        "Clip the downside of negative Black Swans"
+      ],
+      "related_dimensions": ["antifragility", "financial", "infrastructure"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Tail risk auditing", "status": "planned"},
+        {"name": "Asymmetric bet tracking", "status": "planned"}
+      ]
+    },
+    {
+      "id": "barbell_strategy",
+      "label": "Barbell Strategy",
+      "short": "Barbell",
+      "icon": "🏋️",
+      "accent": "#DD6B20",
+      "group": "risk_management",
+      "description": "Bimodal resource allocation: vast majority in ultra-safe assets/habits, small minority in high-risk/high-reward bets, avoiding the 'middle'.",
+      "why_it_matters": "Moderate risk is an illusion that leads to uncompensated ruin. A barbell approach strictly bounds downside while maintaining uncapped upside potential.",
+      "scientific_basis": "Nassim Taleb's Incerto series. Combines extreme risk aversion on one end and extreme risk loving on the other, mathematically superior to medium-risk strategies under uncertainty.",
+      "model_thinker_models": ["Bimodal Distribution", "Risk Bounding", "Convexity"],
+      "key_insights": [
+        "Allocate 80-90% to maximum safety",
+        "Allocate 10-20% to maximum speculation",
+        "Avoid the 'medium risk' trap entirely"
+      ],
+      "related_dimensions": ["financial", "antifragility", "goals"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Resource allocation review", "status": "planned"},
+        {"name": "Portfolio bimodal balancing", "status": "planned"}
+      ]
+    },
+    {
+      "id": "lindy_effect",
+      "label": "Lindy Effect & Longevity",
+      "short": "Lindy",
+      "icon": "⏳",
+      "accent": "#805AD5",
+      "group": "risk_management",
+      "description": "Evaluating ideas, technologies, and habits based on their survival time; older non-perishables are likelier to survive longer.",
+      "why_it_matters": "Filters out noise, fads, and fragile novelties. Time is the ultimate judge of robustness. Relying on Lindy-compatible tools minimizes technical debt and intellectual dead ends.",
+      "scientific_basis": "Nassim Taleb's formulation of the Lindy Effect. In 'Extremistan', the expected future lifespan of non-perishable entities is proportional to their current age.",
+      "model_thinker_models": ["Survival Analysis", "Power Law", "Proportional Longevity"],
+      "key_insights": [
+        "Time is the best filter for quality",
+        "Prefer old books, established tech, and ancient habits",
+        "Avoid recent trends unless necessary"
+      ],
+      "related_dimensions": ["infrastructure", "research", "habits"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Tech stack longevity audit", "status": "planned"},
+        {"name": "Reading list Lindy filtering", "status": "planned"}
+      ]
+    },
+    {
+      "id": "via_negativa",
+      "label": "Via Negativa (Subtraction)",
+      "short": "Via Negativa",
+      "icon": "➖",
+      "accent": "#38A169",
+      "group": "risk_management",
+      "description": "Improving systems and outcomes by removing harmful, fragile, or unnecessary elements rather than adding new ones.",
+      "why_it_matters": "Addition introduces new, unforeseen complexities and side-effects (iatrogenics). Subtraction is robust, testable, and highly effective for optimization.",
+      "scientific_basis": "Nassim Taleb's epistemological principle. Knowledge of what is wrong is more robust than knowledge of what is right. Interventions should prioritize 'do no harm'.",
+      "model_thinker_models": ["Iatrogenics", "Omission", "Falsification", "Minimalism"],
+      "key_insights": [
+        "Remove bad habits before building new ones",
+        "Omission errors are safer than commission errors",
+        "Less is more in complex systems"
+      ],
+      "related_dimensions": ["decision_fatigue", "health", "metacognition"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Subtraction auditing", "status": "planned"},
+        {"name": "Negative habit elimination", "status": "in-progress"}
+      ]
+    },
+    {
+      "id": "skin_in_the_game",
+      "label": "Skin in the Game",
+      "short": "SITG",
+      "icon": "🎲",
+      "accent": "#D53F8C",
+      "group": "risk_management",
+      "description": "Ensuring symmetry in risk; bearing the personal consequences of actions and advice.",
+      "why_it_matters": "Without skin in the game, hidden risks accumulate and systems collapse. Aligning incentives ensures honest decision-making and filters out empty posturing.",
+      "scientific_basis": "Nassim Taleb's 'Skin in the Game'. Systems require symmetry in upside and downside to function properly. Evolution itself relies on filtering out those who make bad decisions.",
+      "model_thinker_models": ["Symmetry", "Agency Problem", "Incentive Alignment", "Evolutionary Filter"],
+      "key_insights": [
+        "Do not take advice from someone without downside risk",
+        "Personal cost filters out bad ideas",
+        "Accountability drives system robustness"
+      ],
+      "related_dimensions": ["social_capital", "financial", "metacognition"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Advisor downside auditing", "status": "planned"},
+        {"name": "Incentive alignment check", "status": "planned"}
+      ]
+    },
+    {
+      "id": "dual_system_theory",
+      "label": "Dual-System Theory (System 1 & 2)",
+      "short": "Systems 1 & 2",
+      "icon": "⚖️",
+      "accent": "#2B6CB0",
+      "group": "cognitive",
+      "description": "Balancing fast, intuitive, automatic thinking (System 1) with slow, deliberate, analytical reasoning (System 2).",
+      "why_it_matters": "System 1 constructs coherent narratives from incomplete data (WYSIATI - What You See Is All There Is) and drives most choices. Engaging System 2 intentionally prevents critical judgment errors in novel or complex situations.",
+      "scientific_basis": "Daniel Kahneman's 'Thinking, Fast and Slow'. Maps the architecture of the mind into an effortless automatic mode and an effortful deliberative mode.",
+      "model_thinker_models": ["Dual Process Theory", "WYSIATI", "Pattern Recognition", "Algorithmic Verification"],
+      "key_insights": [
+        "We are blind to our own blindness (WYSIATI)",
+        "System 1 cannot be turned off, only overridden",
+        "Mental effort depletes System 2, leading to cognitive errors"
+      ],
+      "related_dimensions": ["metacognition", "decision_fatigue", "heuristics_biases"],
+      "status": "planned",
+      "workflows": [
+        {"name": "System 2 trigger conditions", "status": "planned"},
+        {"name": "WYSIATI audit", "status": "planned"}
+      ]
+    },
+    {
+      "id": "heuristics_biases",
+      "label": "Cognitive Heuristics & Biases",
+      "short": "Heuristics",
+      "icon": "🔍",
+      "accent": "#C53030",
+      "group": "cognitive",
+      "description": "Identifying and countering systematic mental shortcuts such as Anchoring, Availability, and Representativeness.",
+      "why_it_matters": "Human decision-making relies on predictable, irrational shortcuts under uncertainty. Countering these requires structural interventions like pre-mortems and base-rate integration.",
+      "scientific_basis": "Kahneman and Tversky's foundational research on judgment under uncertainty. Shows humans systematically deviate from rational choice models due to reliance on heuristic principles.",
+      "model_thinker_models": ["Anchoring", "Availability Heuristic", "Base-Rate Neglect", "Bayesian Updating"],
+      "key_insights": [
+        "Vividness and recency distort probability estimates",
+        "Initial numbers (anchors) severely skew final judgments",
+        "Similarity to prototypes overrides statistical reality"
+      ],
+      "related_dimensions": ["dual_system_theory", "metacognition", "financial"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Pre-mortem analysis", "status": "planned"},
+        {"name": "Base-rate integration check", "status": "future"}
+      ]
+    },
+    {
+      "id": "prospect_theory",
+      "label": "Prospect Theory & Loss Aversion",
+      "short": "Prospect Theory",
+      "icon": "📉",
+      "accent": "#276749",
+      "group": "cognitive",
+      "description": "Understanding decision-making under risk, emphasizing that losses loom larger than gains and choices depend heavily on framing.",
+      "why_it_matters": "Humans are risk-averse when facing gains but risk-seeking when facing losses. Recognizing this asymmetry prevents poor financial and strategic choices driven by fear of loss.",
+      "scientific_basis": "Kahneman and Tversky's Prospect Theory (Nobel Prize-winning). Replaced expected utility theory by modeling how people actually value asymmetric outcomes relative to a reference point.",
+      "model_thinker_models": ["Loss Aversion", "Framing Effects", "Endowment Effect", "Value Function"],
+      "key_insights": [
+        "Losses hurt roughly twice as much as equivalent gains",
+        "Identical choices yield different decisions based on framing",
+        "Ownership artificially inflates perceived value"
+      ],
+      "related_dimensions": ["financial", "barbell_strategy", "decision_fatigue"],
+      "status": "planned",
+      "workflows": [
+        {"name": "Loss aversion auditing", "status": "planned"},
+        {"name": "Neutral framing exercises", "status": "planned"}
+      ]
     }
   ]
 }

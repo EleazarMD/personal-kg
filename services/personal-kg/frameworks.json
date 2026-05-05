@@ -929,6 +929,86 @@
       "applicable_dimensions": [
         "attention"
       ]
+    },
+    {
+      "id": "stanford-professional-fulfillment",
+      "name": "Stanford Model of Professional Fulfillment",
+      "source": "Stanford Medicine / Trockel MT, et al.",
+      "category": "occupational-well-being",
+      "description": "A framework hypothesizing that physician well-being is driven by culture of wellness, workplace efficiency, and individual factors.",
+      "when_to_use": "When assessing occupational well-being, burnout, or resilience in high-stress roles.",
+      "key_concepts": [
+        "Culture of Wellness",
+        "Workplace Efficiency",
+        "Individual Factors"
+      ],
+      "limitations": "Healthcare-specific framing may require adaptation for general career contexts.",
+      "applicable_dimensions": [
+        "career",
+        "well-being",
+        "work-life-balance"
+      ]
+    },
+    {
+      "id": "availability_heuristic",
+      "name": "Availability Heuristic",
+      "source": "Thinking, Fast and Slow (Kahneman)",
+      "category": "heuristic",
+      "description": "The tendency to judge the frequency, probability, or importance of an event based on how easily examples come to mind. Heavily skewed by recent, vivid, or emotionally charged events.",
+      "when_to_use": "When evaluating risk, predicting likelihoods, or assessing threat levels. Use to check if media coverage, recent personal experiences, or dramatic anomalies are overriding statistical reality.",
+      "key_concepts": [
+        "Ease of recall replaces genuine probability estimation",
+        "Media-amplified events (plane crashes, terrorism) are systematically overestimated",
+        "Mundane threats (car crashes, heart disease) are systematically underestimated",
+        "Actionable mitigation: Mandate the extraction of objective base-rate statistics before making a decision"
+      ],
+      "limitations": "Difficult to detect in oneself because the ease of recall feels intuitively 'right' and coherent.",
+      "applicable_dimensions": [
+        "decision_fatigue",
+        "metacognition",
+        "clinical",
+        "heuristics_biases"
+      ]
+    },
+    {
+      "id": "anchoring_adjustment",
+      "name": "Anchoring and Adjustment",
+      "source": "Thinking, Fast and Slow (Kahneman)",
+      "category": "heuristic",
+      "description": "The cognitive bias where an individual relies too heavily on an initial piece of information (the 'anchor') when making decisions. Subsequent judgments are made by adjusting away from the anchor, but adjustments are usually insufficient.",
+      "when_to_use": "When making numerical estimations, negotiating, setting budgets, or forecasting. Use to recognize when an arbitrary starting number is dragging the final outcome.",
+      "key_concepts": [
+        "Anchoring occurs even when the starting number is explicitly random or irrelevant",
+        "Adjustments from the anchor are systematically insufficient because they stop once a 'plausible' value is reached",
+        "Priming: anchors activate System 1 to construct a world in which the anchor is the true number",
+        "Actionable mitigation: Set extreme counter-anchors, or mandate generating independent estimates before exposing oneself to the anchor"
+      ],
+      "limitations": "Even awareness of the anchor often fails to fully eliminate its effect on the final estimate.",
+      "applicable_dimensions": [
+        "financial",
+        "metacognition",
+        "heuristics_biases"
+      ]
+    },
+    {
+      "id": "representativeness_heuristic",
+      "name": "Representativeness Heuristic",
+      "source": "Thinking, Fast and Slow (Kahneman)",
+      "category": "heuristic",
+      "description": "Evaluating the probability of an event by assessing how much it resembles a known prototype or stereotype, while ignoring background statistical reality (base-rate neglect).",
+      "when_to_use": "When predicting outcomes, categorizing objects/people, or diagnosing issues based on descriptions. Use to counter stereotyping and forced pattern-matching.",
+      "key_concepts": [
+        "Base-rate neglect: ignoring the underlying frequency of a category in favor of descriptive similarity",
+        "Conjunction fallacy (the Linda problem): judging a specific condition as more probable than a general one because it fits a stereotype",
+        "Insensitivity to sample size: expecting small samples to represent the underlying population distribution",
+        "Actionable mitigation: Explicitly state the base rates before assessing the specific case (Bayesian updating)"
+      ],
+      "limitations": "System 1 naturally suppresses ambiguity and constructs causal stories that make stereotypes feel highly predictive.",
+      "applicable_dimensions": [
+        "clinical",
+        "metacognition",
+        "heuristics_biases"
+      ]
     }
   ]
 }
