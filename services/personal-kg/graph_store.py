@@ -162,10 +162,15 @@ class GraphStore:
             entities = []
             for record in result:
                 node = record["e"]
+                try:
+                    node_type = EntityType(node["type"])
+                except ValueError:
+                    node_type = EntityType.OTHER
+                
                 entities.append(Entity(
-                    id=node["id"],
+                    id=node.get("id", f"entity_{uuid.uuid4().hex[:12]}"),
                     name=node["name"],
-                    type=EntityType(node["type"]),
+                    type=node_type,
                     description=node.get("description"),
                     properties=node.get("properties", {}),
                     source_document_id=node.get("source_document_id")
