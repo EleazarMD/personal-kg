@@ -76,6 +76,25 @@ async def lifespan(app: FastAPI):
     try:
         graph_store.connect()
         print("✅ Connected to Neo4j (Knowledge Graph)")
+        # Apply idempotent schema migrations (constraints, range indexes,
+        # native vector indexes, additive backfills). See migrations.py.
+        try:
+            try:
+                from .migrations import run_migrations
+            except ImportError:
+                from migrations import run_migrations
+            embedding_dims = int(getattr(settings, "embedding_dims", 768))
+            summary = run_migrations(graph_store.driver, embedding_dims=embedding_dims)
+            print(
+                f"✅ PCG migrations: {summary['constraints']} constraints, "
+                f"{summary['range_indexes']} range indexes, "
+                f"{summary['vector_indexes']} vector indexes, "
+                f"{summary['backfills']} backfills"
+            )
+            if summary["errors"]:
+                print(f"⚠️ {len(summary['errors'])} migration warnings (see logs)")
+        except Exception as mig_err:  # noqa: BLE001
+            print(f"⚠️ PCG migrations failed: {mig_err}")
     except Exception as e:
         print(f"⚠️ Neo4j connection failed: {e}")
     
@@ -85,12 +104,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️ ChromaDB connection failed: {e}")
     
-    # Initialize PIC store (shares Neo4j connection settings)
-    try:
-        pic_store = get_pic_store()
-        print("✅ Personal Identity Core (PIC) initialized")
-    except Exception as e:
-        print(f"⚠️ PIC initialization failed: {e}")
+    # PIC stores are created lazily per-user on first request.
+    # No global singleton initialization — JIT zero-tolerance.
+    print("✅ Personal Identity Core (PIC) ready (per-user lazy init)")
     
     yield
     
@@ -130,8 +146,36 @@ async def pic_auth_middleware(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# Include PIC routes
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    """Catch ValueError (e.g. 'user_id is required') and return 400."""
+    if "user_id is required" in str(exc):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=400,
+            content={"detail": str(exc), "hint": "Provide X-User-Id header to scope to the correct user's data"}
+        )
+    raise exc
+
+
+# Include PIC routes (legacy namespace — see AGENTIFICATION_PLAN.md terminology note)
 app.include_router(pic_router)
+
+# Include PCG v2 routes. Primary mount at /api/pcg, plus a deprecated alias at
+# /api/pic so existing Nova/Hermes/OpenClaw callers keep working. Same handlers.
+try:
+    from .pcg_routes import router as pcg_router, set_graph_store as set_pcg_graph_store
+except ImportError:
+    from pcg_routes import router as pcg_router, set_graph_store as set_pcg_graph_store
+
+app.include_router(pcg_router, prefix="/api/pcg")
+app.include_router(pcg_router, prefix="/api/pic", include_in_schema=False)
+# Share the already-connected graph driver with the PCG routes. The graph
+# store is connected in the lifespan handler above; since FastAPI creates the
+# app object before lifespan runs, we hand off the reference at module scope
+# here (the GraphStore instance is the same singleton imported by pic_routes).
+set_pcg_graph_store(graph_store)
 
 # Include LIAM routes
 from liam_routes import router as liam_router
@@ -161,12 +205,7 @@ async def health_check():
     except Exception as e:
         vector_status = f"error: {str(e)}"
     
-    try:
-        pic_store = get_pic_store()
-        pic_stats = pic_store.get_pic_stats()
-        pic_status = "initialized"
-    except Exception as e:
-        pic_status = f"error: {str(e)}"
+    pic_status = "per-user (lazy init)"
     
     return {
         "status": "healthy" if graph_status == "connected" else "degraded",
