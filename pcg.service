@@ -13,8 +13,8 @@ Environment="PYTHONPATH=/home/eleazar/Projects/AIHomelab/services/personal-kg/se
 Environment="NEO4J_URI=bolt://localhost:7689"
 Environment="NEO4J_USER=neo4j"
 Environment="NEO4J_PASSWORD=graphrag2025"
-Environment="PIC_READ_KEY=dev-read-key-change-in-prod"
-Environment="PIC_ADMIN_KEY=dev-admin-key-change-in-prod"
+Environment="PIC_READ_KEY=pic-read-O-1b4i12nR9gr3kzookTYGZ7NTA_nhSF"
+Environment="PIC_ADMIN_KEY=pic-admin-nee9oPtIqFwRUaj5vm96A8LEwMkYtUFU"
 ExecStart=/home/eleazar/Projects/AIHomelab/services/personal-kg/services/personal-kg/venv/bin/python -m uvicorn api:app --host 0.0.0.0 --port 8765
 Restart=always
 RestartSec=5

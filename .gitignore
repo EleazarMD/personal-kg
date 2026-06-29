@@ -10,3 +10,8 @@ __pycache__/
 .vscode/
 *.db
 *.sqlite
+
+# Runtime data + key-rotation backups
+services/personal-kg/data/
+*.bak
+*.bak-*
