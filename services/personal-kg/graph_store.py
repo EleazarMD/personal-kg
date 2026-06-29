@@ -29,15 +29,18 @@ settings = get_settings()
 class GraphStore:
     """Neo4j graph database store."""
     
-    def __init__(self):
+    def __init__(self, neo4j_uri: str = None, neo4j_user: str = None, neo4j_password: str = None):
         self.driver = None
         self.settings = settings
+        self._uri = neo4j_uri or settings.neo4j_uri
+        self._user = neo4j_user or settings.neo4j_user
+        self._password = neo4j_password or settings.neo4j_password
     
     def connect(self):
         """Connect to Neo4j."""
         self.driver = GraphDatabase.driver(
-            self.settings.neo4j_uri,
-            auth=(self.settings.neo4j_user, self.settings.neo4j_password)
+            self._uri,
+            auth=(self._user, self._password)
         )
         
         with self.driver.session() as session:

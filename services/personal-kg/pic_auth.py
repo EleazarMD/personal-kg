@@ -11,7 +11,12 @@ async def verify_pic_auth(request: Request):
     if request.url.path == "/health":
         return
     
-    if not request.url.path.startswith("/api/pic"):
+    # Protect both the legacy /api/pic namespace and the current /api/pcg one.
+    # Same keys (X-PIC-Read-Key / X-PIC-Admin-Key) — see AGENTIFICATION_PLAN.md.
+    if not (
+        request.url.path.startswith("/api/pic")
+        or request.url.path.startswith("/api/pcg")
+    ):
         return
     
     auth_header = request.headers.get("X-PIC-Read-Key") or request.headers.get("X-PIC-Admin-Key")

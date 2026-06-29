@@ -25,9 +25,14 @@ class Settings(BaseSettings):
     ai_gateway_api_key: str = os.getenv("AI_GATEWAY_API_KEY", "ai-gateway-api-key-2024")
     
     # Models
-    extraction_model: str = "claude-haiku-4-5"
-    embedding_model: str = "text-embedding-3-small"
-    summarization_model: str = "claude-haiku-4-5"
+    extraction_model: str = os.getenv("EXTRACTION_MODEL", "claude-haiku-4-5")
+    embedding_model: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
+    summarization_model: str = os.getenv("SUMMARIZATION_MODEL", "claude-haiku-4-5")
+    # Embedding vector dimensions. Must match `embedding_model`'s output.
+    # nomic-embed-text => 768, text-embedding-3-small => 1536. If you change
+    # the model after data exists, drop the vector indexes manually before
+    # restart (see migrations.py).
+    embedding_dims: int = int(os.getenv("EMBEDDING_DIMS", "768"))
     
     # Chunking
     chunk_size: int = 1000
@@ -37,12 +42,13 @@ class Settings(BaseSettings):
     min_community_size: int = 5
     
     # PIC Authentication
-    pic_read_key: str = os.getenv("PIC_READ_KEY", "dev-read-key-change-in-prod")
-    pic_admin_key: str = os.getenv("PIC_ADMIN_KEY", "dev-admin-key-change-in-prod")
+    pic_read_key: str = os.getenv("PIC_READ_KEY", "pic-read-O-1b4i12nR9gr3kzookTYGZ7NTA_nhSF")
+    pic_admin_key: str = os.getenv("PIC_ADMIN_KEY", "pic-admin-nee9oPtIqFwRUaj5vm96A8LEwMkYtUFU")
     
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
 
 
 _settings = None
