@@ -740,6 +740,77 @@ class GraphStore:
             record = result.single()
             return bool(record and record["linked"])
 
+
+    def upsert_preference(
+        self,
+        category: str,
+        key: str,
+        value: str,
+        scope: str = "global",
+        source: str = "explicit",
+        confidence: float = 1.0,
+        context: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create or update a Preference node with embedding."""
+        import asyncio
+        pref_id = f"pref_{uuid.uuid4().hex[:12]}"
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MERGE (p:Preference {category: $category, key: $key, scope: $scope})
+                ON CREATE SET p.id = $id, p.created_at = datetime(),
+                              p.confidence = $confidence, p.source = $source
+                ON MATCH SET p.confidence = $confidence,
+                             p.source = $source,
+                             p.last_reinforced_at = datetime()
+                SET p.value = $value,
+                    p.context = coalesce($context, p.context),
+                    p.updated_at = datetime()
+                RETURN p
+                """,
+                id=pref_id,
+                category=category,
+                key=key,
+                value=value,
+                scope=scope,
+                source=source,
+                confidence=confidence,
+                context=context,
+            )
+            record = result.single()
+            return dict(record["p"]) if record else {}
+
+    def link_consolidates(self, insight_id: str, observation_id: str) -> bool:
+        """Create :CONSOLIDATES edge from Insight to Observation."""
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (i:Insight {id: $insight_id})
+                MATCH (o:Observation {id: $obs_id})
+                MERGE (i)-[r:CONSOLIDATES]->(o)
+                ON CREATE SET r.owner = pcg, r.created_at = datetime()
+                RETURN r IS NOT NULL AS linked
+                """,
+                insight_id=insight_id,
+                obs_id=observation_id,
+            )
+            record = result.single()
+            return bool(record and record["linked"])
+
+    def mark_observation_promoted(self, observation_id: str) -> bool:
+        """Mark an observation as promoted (status=promoted)."""
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (o:Observation {id: $obs_id})
+                SET o.status = promoted, o.updated_at = datetime()
+                RETURN o IS NOT NULL AS updated
+                """,
+                obs_id=observation_id,
+            )
+            record = result.single()
+            return bool(record and record["updated"])
+
     # =========================================================================
     # EmailDraft CRUD (Phase B2a)
     # =========================================================================

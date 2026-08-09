@@ -318,3 +318,39 @@ async def update_draft(draft_id: str, data: EmailDraftUpdate):
     if not updated:
         raise HTTPException(status_code=404, detail=f"draft {draft_id} not found")
     return {"status": "updated", "draft": updated}
+
+
+# =========================================================================
+# Phase C: Consolidation + Exomind (Dreaming + context capsule)
+# =========================================================================
+
+from consolidation import get_consolidation_service
+from exomind import get_exomind_service, VALID_SURFACES
+
+
+@router.post("/consolidate")
+async def trigger_consolidation(lookback_hours: int = Query(24, ge=1, le=168)):
+    \"\"\"Manually trigger the consolidation (Dreaming) pipeline.
+    Returns summary stats from the run.\"\"\"
+    service = get_consolidation_service()
+    stats = await service.run(lookback_hours=lookback_hours)
+    return stats
+
+
+@router.get("/exomind/capsule")
+async def get_context_capsule(
+    surface: str = Query("email", description=f"Surface: {, .join(VALID_SURFACES)}"),
+    contact: Optional[str] = Query(None, description="Contact email (email surface only)"),
+    max_prefs: int = Query(15, ge=1, le=50),
+    max_obs: int = Query(5, ge=0, le=20),
+):
+    \"\"\"Build a surface-aware context capsule for agent system prompt injection.
+    Returns markdown-formatted context block.\"\"\"
+    service = get_exomind_service()
+    capsule = service.build_capsule(
+        surface=surface,
+        contact_email=contact,
+        max_preferences=max_prefs,
+        max_observations=max_obs,
+    )
+    return {"surface": surface, "capsule": capsule}
