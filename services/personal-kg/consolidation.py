@@ -277,7 +277,30 @@ class ConsolidationService:
             stats["promotions"],
             stats["decayed"],
         )
+
+        # Notify via Hyperspace webhook → APNs push
+        if stats["insights_created"] > 0 or stats["decayed"] > 0:
+            await self._notify_consolidation(stats)
+
         return stats
+
+    async def _notify_consolidation(self, stats: dict) -> None:
+        """Fire-and-forget webhook to Hyperspace for APNs push notification."""
+        import aiohttp
+        webhook_url = self.settings.hyperspace_url.rstrip("/") + "/api/memory/push/webhook"
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
+                await session.post(webhook_url, json={
+                    "event_type": "consolidation_ready",
+                    "user_id": "eleazar",
+                    "data": {
+                        "insight_count": stats["insights_created"],
+                        "promotion_count": stats["promotions"],
+                        "decayed_count": stats["decayed"],
+                    },
+                })
+        except Exception as e:
+            log.debug("Consolidation notification failed (non-blocking): %s", e)
 
     def _promote_cluster(
         self,

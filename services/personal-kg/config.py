@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Models
     extraction_model: str = os.getenv("EXTRACTION_MODEL", "claude-haiku-4-5")
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
+    # Hyperspace backend (for push notification webhook)
+    hyperspace_url: str = os.getenv("HYPERSPACE_URL", "http://localhost:8031")
+    # Consolidation LLM model (for Dreaming pipeline insight summarization)
+    consolidation_model: str = os.getenv("CONSOLIDATION_MODEL", "gpt-4o-mini")
     summarization_model: str = os.getenv("SUMMARIZATION_MODEL", "claude-haiku-4-5")
     # Embedding vector dimensions. Must match `embedding_model`'s output.
     # nomic-embed-text => 768, text-embedding-3-small => 1536. If you change
