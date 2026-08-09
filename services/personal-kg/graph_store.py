@@ -60,9 +60,9 @@ class GraphStore:
             result = session.run("""
                 MATCH (e:Entity)
                 WITH count(e) as entities
-                MATCH ()-[r]->()
+                OPTIONAL MATCH ()-[r]->()
                 WITH entities, count(r) as relationships
-                MATCH (c:Community)
+                OPTIONAL MATCH (c:Community)
                 RETURN entities, relationships, count(c) as communities
             """)
             record = result.single()
