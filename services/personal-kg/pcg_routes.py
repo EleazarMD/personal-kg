@@ -354,3 +354,132 @@ async def get_context_capsule(
         max_observations=max_obs,
     )
     return {"surface": surface, "capsule": capsule}
+
+
+# =========================================================================
+# Intervention Bridge — IDE → PCG sync
+# =========================================================================
+# The IDE's IWorkflowMemoryService stores interventions locally in
+# IStorageService. This endpoint accepts intervention records from the IDE
+# so they can be surfaced in the Dashboard Memory Console and Hyperspace iOS.
+# PCG stores them as :Observation nodes with category='intervention'
+# and links them to the originating :WorkflowRun if available.
+
+from pydantic import BaseModel, Field
+from typing import Optional, List
+
+
+class InterventionBridgeInput(BaseModel):
+    interventionId: str
+    traceId: Optional[str] = None
+    turnId: Optional[str] = None
+    workflowId: str
+    ts: float
+    origin: str = "user_override"
+    agentOutput: dict
+    userFix: dict = {}
+    tag: str
+    note: Optional[str] = None
+    modelId: Optional[str] = None
+    harnessProfile: Optional[str] = None
+
+
+class InterventionBridgeBatch(BaseModel):
+    interventions: List[InterventionBridgeInput]
+
+
+@router.post("/interventions/sync")
+async def sync_interventions(batch: InterventionBridgeBatch):
+    """Receive a batch of intervention records from the IDE.
+    Stores each as an :Observation with category='intervention' and
+    links to :WorkflowRun if the workflow_id matches an existing run."""
+    store = _store()
+    synced = 0
+    errors = []
+    for rec in batch.interventions:
+        try:
+            obs_text = f"[{rec.tag}] {rec.agentOutput.get('kind', 'unknown')}: {rec.note or rec.agentOutput.get('excerpt', '')}"
+            obs = store.record_observation(
+                observation=obs_text,
+                category="intervention",
+                source="ide_bridge",
+                user_id="local",
+            )
+            # Add structured fields
+            obs_id = obs.get('id')
+            if obs_id:
+                with store.driver.session() as session:
+                    session.run(
+                        \"\"\"
+                        MATCH (o:Observation {id: $id})
+                        SET o.intervention_id = $intervention_id,
+                            o.tag = $tag,
+                            o.origin = $origin,
+                            o.workflow_id = $workflow_id,
+                            o.model_id = $model_id,
+                            o.harness_profile = $harness_profile,
+                            o.confidence = 1.0
+                        \"\"\",
+                        id=obs_id,
+                        intervention_id=rec.interventionId,
+                        tag=rec.tag,
+                        origin=rec.origin,
+                        workflow_id=rec.workflowId,
+                        model_id=rec.modelId,
+                        harness_profile=rec.harnessProfile,
+                    )
+            synced += 1
+        except Exception as e:
+            errors.append(f"{rec.interventionId}: {e}")
+    return {"synced": synced, "errors": errors}
+
+
+@router.get("/interventions")
+async def list_interventions(
+    since_ts: Optional[float] = Query(None, description="Unix timestamp filter"),
+    tag: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+):
+    """List intervention records stored via the bridge."""
+    store = _store()
+    with store.driver.session() as session:
+        if since_ts and tag:
+            result = session.run(
+                \"\"\"
+                MATCH (o:Observation)
+                WHERE o.category = 'intervention'
+                  AND o.created_at >= datetime($since)
+                  AND o.tag = $tag
+                RETURN o
+                ORDER BY o.created_at DESC
+                LIMIT $limit
+                \"\"\",
+                since=datetime.fromtimestamp(since_ts, tz=timezone.utc).isoformat(),
+                tag=tag,
+                limit=limit,
+            )
+        elif since_ts:
+            result = session.run(
+                \"\"\"
+                MATCH (o:Observation)
+                WHERE o.category = 'intervention'
+                  AND o.created_at >= datetime($since)
+                RETURN o
+                ORDER BY o.created_at DESC
+                LIMIT $limit
+                \"\"\",
+                since=datetime.fromtimestamp(since_ts, tz=timezone.utc).isoformat(),
+                limit=limit,
+            )
+        else:
+            result = session.run(
+                \"\"\"
+                MATCH (o:Observation)
+                WHERE o.category = 'intervention'
+                RETURN o
+                ORDER BY o.created_at DESC
+                LIMIT $limit
+                \"\"\",
+                limit=limit,
+            )
+        return {"interventions": [dict(r["o"]) for r in result]}
