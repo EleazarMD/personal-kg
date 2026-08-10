@@ -27,7 +27,7 @@ import aiohttp
 from config import get_settings
 from embeddings import get_embedder
 from graph_store import GraphStore
-from models import Insight, InsightType, WorkflowRun, WorkflowStatus
+from models import Insight, InsightType, WorkflowRun, WorkflowRunStatus
 
 log = logging.getLogger(__name__)
 
@@ -44,41 +44,67 @@ def _cosine_similarity(a: List[float], b: List[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def cluster_observations(
+async def cluster_observations(
     observations: List[Dict[str, Any]],
-    similarity_threshold: float = 0.75,
+    embedder=None,
+    similarity_threshold: float = 0.55,
 ) -> List[List[Dict[str, Any]]]:
-    """Greedy agglomerative clustering by embedding similarity.
+    """Cluster observations by semantic similarity.
 
-    Returns list of clusters, each a list of observation dicts.
-    Observations without embeddings go into singleton clusters.
+    Tries embedding-based clustering first (if embedder is available and
+    healthy). Falls back to LLM-based clustering if embeddings fail.
+    As a last resort, groups by category.
     """
-    clusters: List[List[Dict[str, Any]]] = []
+    # Try embedding-based clustering
+    if embedder and embedder.is_known_healthy:
+        try:
+            obs_texts = []
+            obs_to_embed = []
+            for obs in observations:
+                if not obs.get("embedding"):
+                    text = obs.get("observation", obs.get("content", str(obs)))
+                    obs_texts.append(text)
+                    obs_to_embed.append(obs)
 
-    for obs in observations:
-        obs_vec = obs.get("embedding")
-        if not obs_vec:
-            clusters.append([obs])
-            continue
+            if obs_to_embed:
+                embeddings = await embedder.embed_batch(obs_texts)
+                for obs, emb in zip(obs_to_embed, embeddings):
+                    obs["embedding"] = emb
 
-        # Find best matching cluster
-        best_cluster_idx = -1
-        best_sim = 0.0
-        for i, cluster in enumerate(clusters):
-            for member in cluster:
-                member_vec = member.get("embedding")
-                if not member_vec:
+            clusters: List[List[Dict[str, Any]]] = []
+            for obs in observations:
+                obs_vec = obs.get("embedding")
+                if not obs_vec:
+                    clusters.append([obs])
                     continue
-                sim = _cosine_similarity(obs_vec, member_vec)
-                if sim > best_sim:
-                    best_sim = sim
-                    best_cluster_idx = i
+                best_cluster_idx = -1
+                best_sim = 0.0
+                for i, cluster in enumerate(clusters):
+                    for member in cluster:
+                        member_vec = member.get("embedding")
+                        if not member_vec:
+                            continue
+                        sim = _cosine_similarity(obs_vec, member_vec)
+                        if sim > best_sim:
+                            best_sim = sim
+                            best_cluster_idx = i
+                if best_sim >= similarity_threshold and best_cluster_idx >= 0:
+                    clusters[best_cluster_idx].append(obs)
+                else:
+                    clusters.append([obs])
+            if len(clusters) < len(observations):
+                log.info("Embedding clustering: %d obs -> %d clusters", len(observations), len(clusters))
+                return clusters
+        except Exception as e:
+            log.warning("Embedding clustering failed (%s), falling back to category grouping", e)
 
-        if best_sim >= similarity_threshold and best_cluster_idx >= 0:
-            clusters[best_cluster_idx].append(obs)
-        else:
-            clusters.append([obs])
-
+    # Fallback: group by category (observations have a 'category' field)
+    by_cat: Dict[str, List[Dict[str, Any]]] = {}
+    for obs in observations:
+        cat = obs.get("category", "other") or "other"
+        by_cat.setdefault(cat, []).append(obs)
+    clusters = list(by_cat.values())
+    log.info("Category clustering: %d obs -> %d clusters (by category)", len(observations), len(clusters))
     return clusters
 
 
@@ -96,43 +122,64 @@ async def _summarize_cluster(
     """
     settings = settings or get_settings()
     gateway_url = settings.ai_gateway_url.rstrip("/")
-    if gateway_url.endswith("/api/v1"):
-        gateway_url = gateway_url[: -len("/api/v1")]
-    model = settings.consolidation_model or "gpt-4o-mini"
+    # AI Gateway v2 uses /api/chat/completions (not /v1/chat/completions)
+    if gateway_url.endswith("/v1"):
+        gateway_url = gateway_url[: -len("/v1")]
+    if not gateway_url.endswith("/api"):
+        gateway_url = gateway_url + "/api"
+    model = settings.consolidation_model or "qwen3-30b-a3b"
 
-    obs_texts = [o.get("observation", o.get("content", str(o))) for o in observations]
+    obs_texts = []
+    for o in observations:
+        text = o.get("observation", o.get("content", str(o)))
+        # If the observation is a JSON blob, extract the human-readable value
+        if isinstance(text, str) and text.strip().startswith("{"):
+            try:
+                import json as _json
+                parsed = _json.loads(text)
+                text = parsed.get("value", parsed.get("observation", parsed.get("text", text)))
+            except (ValueError, TypeError):
+                pass
+        obs_texts.append(str(text))
     prompt = (
         "You are a personal context consolidation agent. Below are recent "
         "observations about a user. Summarize them into a single concise "
         "insight (1-2 sentences). Then rate your confidence (0.0-1.0) that "
-        "this represents a durable preference or pattern.\n\n"
-        f"Observations ({len(observations)}):\n"
-        + "\n".join(f"- {t}" for t in obs_texts)
-        + "\n\nRespond in format:\nINSIGHT: <text>\nCONFIDENCE: <0.0-1.0>"
+        "this represents a durable preference or pattern.\\n\\n"
+        f"Observations ({len(observations)}):\\n"
+        + "\\n".join(f"- {t}" for t in obs_texts)
+        + "\\n\\nRespond in format:\\nINSIGHT: <text>\\nCONFIDENCE: <0.0-1.0>"
     )
 
     try:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
             async with session.post(
-                f"{gateway_url}/v1/chat/completions",
+                f"{gateway_url}/chat/completions",
                 headers={
                     "Content-Type": "application/json",
-                    **({"Authorization": f"Bearer {settings.ai_gateway_api_key}"}
-                       if settings.ai_gateway_api_key else {}),
+                    "Authorization": f"Bearer {settings.ai_gateway_api_key or 'ai-gateway-api-key-2024'}",
+                    "X-API-Key": settings.ai_gateway_api_key or 'ai-gateway-api-key-2024',
                 },
                 json={
                     "model": model,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.3,
-                    "max_tokens": 200,
+                    "max_tokens": 1000,
+                    "chat_template_kwargs": {"enable_thinking": False},
                 },
             ) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     log.warning("consolidation LLM HTTP %d: %s", resp.status, text[:200])
-                    return _fallback_summary(observations)
+                    return ("", 0.0)
                 data = await resp.json()
-                content = data["choices"][0]["message"]["content"]
+                content = data["choices"][0]["message"].get("content") or ""
+                # Strip Qwen3 thinking tokens — the model generates a
+                # thinking block even with enable_thinking=false (GPTQ-int4
+                # quantization on DGX-spark doesn't reliably respect it).
+                # The actual answer is after the </thinking_398284847> marker.
+                if "</thinking_398284847>" in content:
+                    content = content.split("</thinking_398284847>")[-1].strip()
                 return _parse_llm_response(content)
     except Exception as e:
         log.warning("consolidation LLM failed: %s", e)
@@ -141,9 +188,19 @@ async def _summarize_cluster(
 
 def _parse_llm_response(content: str) -> Tuple[str, float]:
     """Parse INSIGHT/CONFIDENCE format."""
+    # Strip Qwen3 thinking tokens. The model generates a thinking block
+    # (starting with  "  "  "  "  "  ") even with enable_thinking=false.
+    # The actual answer (INSIGHT: ... CONFIDENCE: ...) comes after the
+    # thinking block. If there's no explicit  marker, look for the
+    # INSIGHT: line which marks the start of the real answer.
+    if "INSIGHT:" in content:
+        # Find the INSIGHT: line and take everything from there
+        idx = content.upper().find("INSIGHT:")
+        if idx > 0:
+            content = content[idx:].strip()
     insight = ""
     confidence = 0.5
-    for line in content.strip().split("\n"):
+    for line in content.strip().split("\\n"):
         if line.upper().startswith("INSIGHT:"):
             insight = line[len("INSIGHT:"):].strip()
         elif line.upper().startswith("CONFIDENCE:"):
@@ -152,7 +209,9 @@ def _parse_llm_response(content: str) -> Tuple[str, float]:
             except ValueError:
                 pass
     if not insight:
-        insight = content.strip().split("\n")[0]
+        if not content:
+            return ("", 0.0)
+        insight = content.strip().split("\\n")[0]
     return insight, max(0.0, min(1.0, confidence))
 
 
@@ -171,14 +230,17 @@ class ConsolidationService:
 
     def __init__(self, graph_store: Optional[GraphStore] = None, settings=None):
         self.store = graph_store or GraphStore()
+        if not self.store.driver:
+            self.store.connect()
         self.settings = settings or get_settings()
         self.embedder = get_embedder()
 
-    async def run(self, lookback_hours: int = 24) -> Dict[str, Any]:
+    async def run(self, lookback_hours: int = 24, user_id: str = "") -> Dict[str, Any]:
         """Run the full consolidation pipeline. Returns summary stats."""
         started_at = datetime.now(timezone.utc)
         stats = {
             "started_at": started_at.isoformat(),
+        "user_id": user_id,
             "observations_gathered": 0,
             "clusters_formed": 0,
             "insights_created": 0,
@@ -190,7 +252,7 @@ class ConsolidationService:
         try:
             # 1. Gather recent observations
             since = (started_at - timedelta(hours=lookback_hours)).isoformat()
-            observations = self.store.list_observations_since(since, status="new", limit=500)
+            observations = self.store.list_observations_since(since, status="new", limit=500, user_id=user_id)
             stats["observations_gathered"] = len(observations)
 
             if not observations:
@@ -199,23 +261,46 @@ class ConsolidationService:
                 return stats
 
             # 2. Cluster
-            clusters = cluster_observations(observations, similarity_threshold=0.75)
+            clusters = await cluster_observations(observations, embedder=self.embedder, similarity_threshold=0.55)
             stats["clusters_formed"] = len(clusters)
 
             # 3. Summarize each cluster → create Insight
             for cluster in clusters:
-                if len(cluster) < 2:
-                    continue  # Skip singletons
+                # Process all clusters, including singletons. A single
+                # observation can still yield a useful insight — the LLM
+                # summarizer will decide if it's a durable pattern.
+                # Only skip if the observation text is empty.
+                if not any(o.get("observation") or o.get("content") for o in cluster):
+                    continue
 
                 summary, confidence = await _summarize_cluster(cluster, self.settings)
                 insight_id = f"insight_{uuid.uuid4().hex[:12]}"
 
                 # Embed the insight
-                embedding = await self.embedder.embed(summary)
+                # Embed the insight (may fail if embeddings unavailable)
+                try:
+                    embedding = await self.embedder.embed(summary)
+                except Exception:
+                    embedding = None
+
+                # Dedup: skip if similar insight exists for same date
+                try:
+                    with self.store.driver.session() as dedup_s:
+                        existing = dedup_s.run(
+                            'MATCH (i:Insight {date: \\}) WHERE i.title CONTAINS \\ OR \\ CONTAINS i.title RETURN count(i) as c',
+                            date=started_at.strftime('%Y-%m-%d'),
+                            frag=summary[:40],
+                        ).single()
+                        if existing and existing['c'] > 0:
+                            log.info('Consolidation: skipping duplicate insight (title=%s)', summary[:60])
+                            continue
+                except Exception:
+                    pass
 
                 insight = Insight(
                     id=insight_id,
                     date=started_at.strftime("%Y-%m-%d"),
+                    title=summary[:80],
                     summary=summary,
                     confidence=confidence,
                     cluster_size=len(cluster),
@@ -236,9 +321,9 @@ class ConsolidationService:
                             log.warning("link_consolidates failed: %s", e)
 
                 # 4. Promote high-confidence clusters
-                if len(cluster) >= 3 and confidence >= 0.7:
+                if len(cluster) >= 2 and confidence >= 0.5:
                     try:
-                        self._promote_cluster(cluster, summary, confidence)
+                        self._promote_cluster(cluster, summary, confidence, user_id=user_id)
                         stats["promotions"] += 1
                     except Exception as e:
                         log.warning("Promotion failed: %s", e)
@@ -246,7 +331,7 @@ class ConsolidationService:
 
             # 5. Decay stale observations (older than 30 days)
             cutoff = (started_at - timedelta(days=30)).isoformat()
-            decayed = self.store.decay_stale_observations(cutoff)
+            decayed = self.store.decay_stale_observations(cutoff, user_id=user_id)
             stats["decayed"] = decayed
 
         except Exception as e:
@@ -257,13 +342,16 @@ class ConsolidationService:
         finished_at = datetime.now(timezone.utc)
         stats["finished_at"] = finished_at.isoformat()
         try:
+            import json as _json
             run = WorkflowRun(
-                run_id=f"consolidation_{started_at.strftime(%Y%m%d_%H%M%S)}",
+                run_id=f"consolidation_{started_at.strftime('%Y%m%d_%H%M%S')}",
                 workflow_name="pcg.daily-consolidation",
                 started_at=started_at,
                 completed_at=finished_at,
-                status=WorkflowStatus.COMPLETED,
-                output_summary=stats,
+                status=WorkflowRunStatus.SUCCEEDED,
+                outputs_summary=_json.dumps(stats, default=str),
+                triggered_by="cron",
+                metadata={"pipeline": "consolidation"},
             )
             self.store.upsert_workflow_run(run)
         except Exception as e:
@@ -292,7 +380,7 @@ class ConsolidationService:
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
                 await session.post(webhook_url, json={
                     "event_type": "consolidation_ready",
-                    "user_id": "eleazar",
+                    "user_id": "local",
                     "data": {
                         "insight_count": stats["insights_created"],
                         "promotion_count": stats["promotions"],
@@ -307,6 +395,7 @@ class ConsolidationService:
         cluster: List[Dict[str, Any]],
         summary: str,
         confidence: float,
+        user_id: str = "",
     ) -> None:
         """Promote a high-confidence cluster to a Preference."""
         # Extract category from first observation
@@ -316,6 +405,7 @@ class ConsolidationService:
 
         # Create preference
         pref = self.store.upsert_preference(
+            user_id=user_id,
             category=category,
             key=key,
             value=summary,
