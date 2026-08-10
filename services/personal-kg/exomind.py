@@ -53,19 +53,22 @@ SURFACE_CATEGORIES: Dict[str, List[str]] = {
 
 
 class ExomindService:
-    \"\"\"Builds surface-aware context capsules from PCG.\"\"\"
+    """Builds surface-aware context capsules from PCG."""
 
     def __init__(self, graph_store: Optional[GraphStore] = None):
         self.store = graph_store or GraphStore()
+        if not self.store.driver:
+            self.store.connect()
 
     def build_capsule(
         self,
         surface: str,
         contact_email: Optional[str] = None,
-        max_preferences: int = 15,
+        max_preferences: int = 30,
         max_observations: int = 5,
+        user_id: str = "",
     ) -> str:
-        \"\"\"Build a context capsule for the given surface.
+        """Build a context capsule for the given surface.
 
         Args:
             surface: One of VALID_SURFACES.
@@ -76,7 +79,7 @@ class ExomindService:
 
         Returns:
             Markdown-formatted context capsule string.
-        \"\"\"
+        """
         if surface not in VALID_SURFACES:
             log.warning("Unknown surface %s, falling back to email", surface)
             surface = SURFACE_EMAIL
@@ -88,7 +91,7 @@ class ExomindService:
         sections.append("")
 
         # Identity
-        identity = self._get_identity()
+        identity = self._get_identity(user_id)
         if identity:
             name = identity.get("preferred_name") or identity.get("name", "")
             if name:
@@ -99,13 +102,47 @@ class ExomindService:
             sections.append("")
 
         # Preferences (filtered by surface-relevant categories)
-        prefs = self._get_surface_preferences(surface, contact_email, max_preferences)
+        prefs = self._get_surface_preferences(surface, contact_email, max_preferences, user_id)
         if prefs:
             sections.append("### Preferences")
+            seen = set()  # dedup by value text
             for p in prefs:
-                value = p.get("value", "")
+                value = str(p.get("value", ""))
+                if not value:
+                    continue
+                # If the value is a JSON blob, extract human-readable fields
+                if value.strip().startswith("{"):
+                    try:
+                        import json as _json
+                        parsed = _json.loads(value)
+                        # Common patterns: trip data, nova_persona config
+                        if "title" in parsed and "destinations" in parsed:
+                            dests = ", ".join(parsed.get("destinations", []))
+                            dates = parsed.get("date_range", {})
+                            val = f"Trip: {parsed['title']} ({dests}, {dates.get('start','')} to {dates.get('end','')})"
+                        elif "preset" in parsed:
+                            val = f"Nova persona: {parsed.get('preset', 'unknown')} mode"
+                        elif "value" in parsed:
+                            val = str(parsed["value"])
+                        elif "observation" in parsed:
+                            val = str(parsed["observation"])
+                        else:
+                            # Unknown JSON — show the first few keys
+                            keys = list(parsed.keys())[:3]
+                            val = f"{{{', '.join(keys)}}}"
+                        value = val
+                    except (ValueError, TypeError):
+                        pass
+                # Dedup
+                key = value.lower().strip()[:100]
+                if key in seen:
+                    continue
+                seen.add(key)
                 scope = p.get("scope", "global")
                 scope_label = f" [{scope}]" if scope != "global" else ""
+                # Truncate very long values
+                if len(value) > 200:
+                    value = value[:200] + "..."
                 sections.append(f"- {value}{scope_label}")
             sections.append("")
 
@@ -120,18 +157,30 @@ class ExomindService:
                 sections.append("")
 
         # Recent observations (surface-relevant)
-        observations = self._get_recent_observations(surface, max_observations)
+        observations = self._get_recent_observations(surface, max_observations, user_id)
         if observations:
             sections.append("### Recent Observations")
             for obs in observations:
                 text = obs.get("observation", obs.get("content", ""))
                 confidence = obs.get("confidence", 0.5)
                 if text:
+                    # If the observation text is a JSON blob (from the
+                    # preference bridge), extract the human-readable value
+                    import json as _json
+                    try:
+                        if text.strip().startswith("{"):
+                            parsed = _json.loads(text)
+                            text = parsed.get("value", parsed.get("observation", text))
+                    except (ValueError, TypeError):
+                        pass
+                    # Truncate very long observations
+                    if len(text) > 200:
+                        text = text[:200] + "..."
                     sections.append(f"- {text} (conf: {confidence:.0%})")
             sections.append("")
 
         # Active goals (all surfaces)
-        goals = self._get_active_goals()
+        goals = self._get_active_goals(user_id)
         if goals:
             sections.append("### Active Goals")
             for g in goals:
@@ -148,11 +197,14 @@ class ExomindService:
 
         return "\n".join(sections)
 
-    def _get_identity(self) -> Optional[Dict[str, Any]]:
-        \"\"\"Get the user identity node.\"\"\"
+    def _get_identity(self, user_id: str = "") -> Optional[Dict[str, Any]]:
+        """Get the user identity node."""
         try:
             with self.store.driver.session() as session:
-                result = session.run("MATCH (i:Identity) RETURN i LIMIT 1")
+                if user_id:
+                    result = session.run("MATCH (i:Identity {user_id: $user_id}) RETURN i LIMIT 1", user_id=user_id)
+                else:
+                    result = session.run("MATCH (i:Identity) RETURN i LIMIT 1")
                 record = result.single()
                 return dict(record["i"]) if record else None
         except Exception as e:
@@ -164,36 +216,41 @@ class ExomindService:
         surface: str,
         contact_email: Optional[str],
         limit: int,
+        user_id: str = "",
     ) -> List[Dict[str, Any]]:
-        \"\"\"Get preferences relevant to the surface.\"\"\"
+        """Get preferences relevant to the surface."""
         categories = SURFACE_CATEGORIES.get(surface, [])
         try:
             with self.store.driver.session() as session:
-                if contact_email:
-                    # Include both global and contact-scoped preferences
+                if user_id:
+                    # Include ALL categories for identity context, but
+                    # prioritize surface-relevant ones. Surface categories
+                    # are a relevance hint, not a hard gate — the capsule
+                    # should show the user's top preferences regardless.
                     result = session.run(
-                        \"\"\"
-                        MATCH (p:Preference)
-                        WHERE (p.scope = global OR p.scope = $contact_scope)
-                          AND (p.category IN $categories OR p.category IS NULL)
-                        RETURN p
-                        ORDER BY p.confidence DESC, p.last_reinforced_at DESC
+                        """
+                        MATCH (p)
+                        WHERE (p:ProfilePreference OR p:EventPreference OR p:SystemPreference OR p:Preference)
+                          AND p.user_id = $user_id
+                        WITH p, CASE WHEN p.category IN $categories THEN 1 ELSE 0 END AS surface_match
+                        RETURN p, surface_match
+                        ORDER BY surface_match DESC, p.confidence DESC, p.updated_at DESC
                         LIMIT $limit
-                        \"\"\",
-                        contact_scope=f"contact:{contact_email}",
+                        """,
+                        user_id=user_id,
                         categories=categories,
                         limit=limit,
                     )
                 else:
                     result = session.run(
-                        \"\"\"
-                        MATCH (p:Preference)
-                        WHERE p.scope = global
-                          AND (p.category IN $categories OR p.category IS NULL)
-                        RETURN p
-                        ORDER BY p.confidence DESC, p.last_reinforced_at DESC
+                        """
+                        MATCH (p)
+                        WHERE (p:ProfilePreference OR p:EventPreference OR p:SystemPreference OR p:Preference)
+                        WITH p, CASE WHEN p.category IN $categories THEN 1 ELSE 0 END AS surface_match
+                        RETURN p, surface_match
+                        ORDER BY surface_match DESC, p.confidence DESC, p.updated_at DESC
                         LIMIT $limit
-                        \"\"\",
+                        """,
                         categories=categories,
                         limit=limit,
                     )
@@ -203,7 +260,7 @@ class ExomindService:
             return []
 
     def _get_communication_style(self, contact_email: str) -> Optional[Dict[str, Any]]:
-        \"\"\"Get communication style for a specific contact.\"\"\"
+        """Get communication style for a specific contact."""
         try:
             return self.store.get_communication_style(f"contact:{contact_email}")
         except Exception as e:
@@ -214,41 +271,70 @@ class ExomindService:
         self,
         surface: str,
         limit: int,
+        user_id: str = "",
     ) -> List[Dict[str, Any]]:
-        \"\"\"Get recent observations relevant to the surface.\"\"\"
+        """Get recent observations relevant to the surface."""
         categories = SURFACE_CATEGORIES.get(surface, [])
         try:
             with self.store.driver.session() as session:
-                result = session.run(
-                    \"\"\"
-                    MATCH (o:Observation)
-                    WHERE o.status IN [new, promoted]
-                      AND (o.category IN $categories OR o.category IS NULL)
-                    RETURN o
-                    ORDER BY o.created_at DESC
-                    LIMIT $limit
-                    \"\"\",
-                    categories=categories,
-                    limit=limit,
-                )
+                if user_id:
+                    result = session.run(
+                        """
+                        MATCH (o:Observation)
+                        WHERE o.user_id = $user_id
+                          AND o.status IN ['new', 'promoted']
+                          AND ($categories = [] OR o.category IN $categories OR o.category IS NULL)
+                        RETURN o
+                        ORDER BY o.created_at DESC
+                        LIMIT $limit
+                        """,
+                        user_id=user_id,
+                        categories=categories,
+                        limit=limit,
+                    )
+                else:
+                    result = session.run(
+                        """
+                        MATCH (o:Observation)
+                        WHERE o.status IN ['new', 'promoted']
+                          AND ($categories = [] OR o.category IN $categories OR o.category IS NULL)
+                        RETURN o
+                        ORDER BY o.created_at DESC
+                        LIMIT $limit
+                        """,
+                        categories=categories,
+                        limit=limit,
+                    )
                 return [dict(r["o"]) for r in result]
         except Exception as e:
             log.warning("Exomind: observations fetch failed: %s", e)
             return []
 
-    def _get_active_goals(self) -> List[Dict[str, Any]]:
-        \"\"\"Get active user goals.\"\"\"
+    def _get_active_goals(self, user_id: str = "") -> List[Dict[str, Any]]:
+        """Get active user goals."""
         try:
             with self.store.driver.session() as session:
-                result = session.run(
-                    \"\"\"
-                    MATCH (g:Goal)
-                    WHERE g.status IS NULL OR g.status = active
-                    RETURN g
-                    ORDER BY g.created_at DESC
-                    LIMIT 5
-                    \"\"\"
-                )
+                if user_id:
+                    result = session.run(
+                        """
+                        MATCH (g:Goal {user_id: $user_id})
+                        WHERE g.status IS NULL OR g.status = 'active'
+                        RETURN g
+                        ORDER BY g.created_at DESC
+                        LIMIT 5
+                        """,
+                        user_id=user_id,
+                    )
+                else:
+                    result = session.run(
+                        """
+                        MATCH (g:Goal)
+                        WHERE g.status IS NULL OR g.status = 'active'
+                        RETURN g
+                        ORDER BY g.created_at DESC
+                        LIMIT 5
+                        """
+                    )
                 return [dict(r["g"]) for r in result]
         except Exception as e:
             log.warning("Exomind: goals fetch failed: %s", e)

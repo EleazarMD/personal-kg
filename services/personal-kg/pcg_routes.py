@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Header
 
 from graph_store import GraphStore
 from models import (
@@ -329,29 +329,67 @@ from exomind import get_exomind_service, VALID_SURFACES
 
 
 @router.post("/consolidate")
-async def trigger_consolidation(lookback_hours: int = Query(24, ge=1, le=168)):
-    \"\"\"Manually trigger the consolidation (Dreaming) pipeline.
-    Returns summary stats from the run.\"\"\"
+async def trigger_consolidation(
+    lookback_hours: int = Query(24, ge=1, le=168),
+    x_user_id: str = Header(default=""),
+    authorization: str = Header(default=""),
+):
+    """Manually trigger the consolidation (Dreaming) pipeline.
+    Returns summary stats from the run.
+    Routes to the signed-in user PCG via X-User-Id."""
+    uid = x_user_id
+    if not uid and authorization.startswith("Bearer "):
+        try:
+            import sys as _sys, os as _os
+            _cig_path = _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "cig")
+            if _os.path.isdir(_cig_path) and _cig_path not in _sys.path:
+                _sys.path.insert(0, _cig_path)
+            from unified_token import verify_token as _verify
+            claims = _verify(authorization[7:])
+            uid = claims.get("user_id", "") if claims else ""
+        except Exception:
+            pass
     service = get_consolidation_service()
-    stats = await service.run(lookback_hours=lookback_hours)
+    stats = await service.run(lookback_hours=lookback_hours, user_id=uid)
     return stats
 
 
 @router.get("/exomind/capsule")
 async def get_context_capsule(
-    surface: str = Query("email", description=f"Surface: {, .join(VALID_SURFACES)}"),
+    surface: str = Query("email", description=f"Surface: {', '.join(VALID_SURFACES)}"),
     contact: Optional[str] = Query(None, description="Contact email (email surface only)"),
     max_prefs: int = Query(15, ge=1, le=50),
     max_obs: int = Query(5, ge=0, le=20),
+    x_user_id: str = Header(default=""),
+    authorization: str = Header(default=""),
 ):
-    \"\"\"Build a surface-aware context capsule for agent system prompt injection.
-    Returns markdown-formatted context block.\"\"\"
+    """Build a surface-aware context capsule for agent system prompt injection.
+    Returns markdown-formatted context block.
+
+    Routes to the signed-in user PCG via X-User-Id header (same as
+    /api/pic/* routes). Ensures both Atlas IDE and Nova get the same
+    capsule for the same user.
+    """
+    uid = x_user_id
+    if not uid and authorization.startswith("Bearer "):
+        try:
+            import sys as _sys, os as _os
+            _cig_path = _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "cig")
+            if _os.path.isdir(_cig_path) and _cig_path not in _sys.path:
+                _sys.path.insert(0, _cig_path)
+            from unified_token import verify_token as _verify
+            claims = _verify(authorization[7:])
+            uid = claims.get("user_id", "") if claims else ""
+        except Exception:
+            pass
+
     service = get_exomind_service()
     capsule = service.build_capsule(
         surface=surface,
         contact_email=contact,
         max_preferences=max_prefs,
         max_observations=max_obs,
+        user_id=uid,
     )
     return {"surface": surface, "capsule": capsule}
 
@@ -389,11 +427,32 @@ class InterventionBridgeBatch(BaseModel):
 
 
 @router.post("/interventions/sync")
-async def sync_interventions(batch: InterventionBridgeBatch):
+async def sync_interventions(
+    batch: InterventionBridgeBatch,
+    x_user_id: str = Header(default=""),
+    authorization: str = Header(default=""),
+):
     """Receive a batch of intervention records from the IDE.
     Stores each as an :Observation with category='intervention' and
-    links to :WorkflowRun if the workflow_id matches an existing run."""
-    store = _store()
+    links to :WorkflowRun if the workflow_id matches an existing run.
+    Routes to the signed-in user PCG via X-User-Id."""
+    # Resolve user_id (same as pic_routes)
+    uid = x_user_id
+    if not uid and authorization.startswith("Bearer "):
+        try:
+            import sys as _sys, os as _os
+            _cig_path = _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "cig")
+            if _os.path.isdir(_cig_path) and _cig_path not in _sys.path:
+                _sys.path.insert(0, _cig_path)
+            from unified_token import verify_token as _verify
+            claims = _verify(authorization[7:])
+            uid = claims.get("user_id", "") if claims else ""
+        except Exception:
+            pass
+    # Import the per-user store resolver from pic_routes
+    from pic_routes import get_pic_store, _resolve_user_id as _pic_resolve_uid
+    uid = _pic_resolve_uid(uid, authorization)
+    store = get_pic_store(uid)
     synced = 0
     errors = []
     for rec in batch.interventions:
@@ -403,14 +462,14 @@ async def sync_interventions(batch: InterventionBridgeBatch):
                 observation=obs_text,
                 category="intervention",
                 source="ide_bridge",
-                user_id="local",
+                user_id=uid,
             )
             # Add structured fields
             obs_id = obs.get('id')
             if obs_id:
                 with store.driver.session() as session:
                     session.run(
-                        \"\"\"
+                        """
                         MATCH (o:Observation {id: $id})
                         SET o.intervention_id = $intervention_id,
                             o.tag = $tag,
@@ -419,7 +478,7 @@ async def sync_interventions(batch: InterventionBridgeBatch):
                             o.model_id = $model_id,
                             o.harness_profile = $harness_profile,
                             o.confidence = 1.0
-                        \"\"\",
+                        """,
                         id=obs_id,
                         intervention_id=rec.interventionId,
                         tag=rec.tag,
@@ -439,13 +498,15 @@ async def list_interventions(
     since_ts: Optional[float] = Query(None, description="Unix timestamp filter"),
     tag: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
+    x_user_id: str = Header(default=""),
+    authorization: str = Header(default=""),
 ):
     """List intervention records stored via the bridge."""
     store = _store()
     with store.driver.session() as session:
         if since_ts and tag:
             result = session.run(
-                \"\"\"
+                """
                 MATCH (o:Observation)
                 WHERE o.category = 'intervention'
                   AND o.created_at >= datetime($since)
@@ -453,33 +514,91 @@ async def list_interventions(
                 RETURN o
                 ORDER BY o.created_at DESC
                 LIMIT $limit
-                \"\"\",
+                """,
                 since=datetime.fromtimestamp(since_ts, tz=timezone.utc).isoformat(),
                 tag=tag,
                 limit=limit,
             )
         elif since_ts:
             result = session.run(
-                \"\"\"
+                """
                 MATCH (o:Observation)
                 WHERE o.category = 'intervention'
                   AND o.created_at >= datetime($since)
                 RETURN o
                 ORDER BY o.created_at DESC
                 LIMIT $limit
-                \"\"\",
+                """,
                 since=datetime.fromtimestamp(since_ts, tz=timezone.utc).isoformat(),
                 limit=limit,
             )
         else:
             result = session.run(
-                \"\"\"
+                """
                 MATCH (o:Observation)
                 WHERE o.category = 'intervention'
                 RETURN o
                 ORDER BY o.created_at DESC
                 LIMIT $limit
-                \"\"\",
+                """,
                 limit=limit,
             )
         return {"interventions": [dict(r["o"]) for r in result]}
+
+
+@router.patch("/insights/{insight_id}/status")
+async def update_insight_status(
+    insight_id: str,
+    status: str = Query(..., description="New status: 'promoted' or 'rejected'"),
+    x_user_id: str = Header(default=""),
+    authorization: str = Header(default=""),
+):
+    """Update an insight's status. Used by the approval queue HITL gate.
+    When status='promoted', the insight is marked as reviewed and its
+    summary becomes a preference. When status='rejected', it's discarded."""
+    from graph_store import GraphStore
+    store = GraphStore()
+    if not store.driver:
+        store.connect()
+
+    # Resolve user_id
+    uid = x_user_id
+    if not uid and authorization.startswith("Bearer "):
+        try:
+            import sys as _sys, os as _os
+            _cig_path = _os.path.join(_os.path.dirname(__file__), "..", "..", "..", "cig")
+            if _os.path.isdir(_cig_path) and _cig_path not in _sys.path:
+                _sys.path.insert(0, _cig_path)
+            from unified_token import verify_token as _verify
+            claims = _verify(authorization[7:])
+            uid = claims.get("user_id", "") if claims else ""
+        except Exception:
+            pass
+
+    updated = store.update_insight_status(insight_id, status)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Insight {insight_id} not found")
+
+    # If promoted, create a preference from the insight summary
+    if status == "promoted":
+        try:
+            with store.driver.session() as session:
+                result = session.run("MATCH (i:Insight {id: $id}) RETURN i", id=insight_id)
+                record = result.single()
+                if record:
+                    insight = dict(record["i"])
+                    summary = insight.get("summary", insight.get("title", ""))
+                    if summary:
+                        import uuid as _uuid
+                        store.upsert_preference(
+                            category="consolidated",
+                            key=f"insight_{insight_id[:12]}",
+                            value=summary,
+                            source="consolidated",
+                            confidence=insight.get("mean_confidence", 0.5),
+                            user_id=uid,
+                        )
+        except Exception as e:
+            log.warning("Failed to promote insight to preference: %s", e)
+
+    return {"status": "updated", "insight_id": insight_id, "new_status": status}

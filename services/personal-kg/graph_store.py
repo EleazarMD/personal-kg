@@ -484,7 +484,7 @@ class GraphStore:
                 triggered_by=run.triggered_by,
                 dry_run=run.dry_run,
                 inputs_summary=run.inputs_summary,
-                metadata=run.metadata or {},
+                metadata=__import__("json").dumps(run.metadata, default=str) if run.metadata else None,
             )
         return run
 
@@ -568,6 +568,7 @@ class GraphStore:
                     cluster_size: $cluster_size,
                     mean_confidence: $mean_confidence,
                     embedding: $embedding,
+                    status: 'pending',
                     created_at: datetime()
                 })
                 """,
@@ -638,40 +639,71 @@ class GraphStore:
     # ---- Observation helpers for consolidation (Phase C1) ------------------
 
     def list_observations_since(
-        self, since_iso: str, status: str = "new", limit: int = 500
+        self, since_iso: str, status: str = "new", limit: int = 500, user_id: str = ""
     ) -> List[Dict[str, Any]]:
-        """List observations newer than `since_iso` with given status. Used
-        by the nightly consolidation workflow."""
+        """List observations newer than `since_iso` with given status.
+        If user_id is provided, filters to that user only."""
         with self.driver.session() as session:
-            result = session.run(
-                """
-                MATCH (o:Observation)
-                WHERE o.status = $status
-                  AND o.created_at >= datetime($since_iso)
-                RETURN o
-                ORDER BY o.created_at DESC
-                LIMIT $limit
-                """,
-                since_iso=since_iso,
-                status=status,
-                limit=limit,
-            )
+            if user_id:
+                result = session.run(
+                    """
+                    MATCH (o:Observation)
+                    WHERE o.status = $status
+                      AND o.user_id = $user_id
+                      AND o.created_at >= datetime($since_iso)
+                    RETURN o
+                    ORDER BY o.created_at DESC
+                    LIMIT $limit
+                    """,
+                    since_iso=since_iso,
+                    status=status,
+                    limit=limit,
+                    user_id=user_id,
+                )
+            else:
+                result = session.run(
+                    """
+                    MATCH (o:Observation)
+                    WHERE o.status = $status
+                      AND o.created_at >= datetime($since_iso)
+                    RETURN o
+                    ORDER BY o.created_at DESC
+                    LIMIT $limit
+                    """,
+                    since_iso=since_iso,
+                    status=status,
+                    limit=limit,
+                )
             return [dict(r["o"]) for r in result]
 
-    def decay_stale_observations(self, older_than_iso: str) -> int:
+    def decay_stale_observations(self, older_than_iso: str, user_id: str = "") -> int:
         """Mark 'new' observations older than the given timestamp as 'decayed'.
-        Returns count updated."""
+        If user_id is provided, filters to that user only. Returns count updated."""
         with self.driver.session() as session:
-            result = session.run(
-                """
-                MATCH (o:Observation)
-                WHERE o.status = 'new'
-                  AND o.created_at < datetime($cutoff)
-                SET o.status = 'decayed', o.updated_at = datetime()
-                RETURN count(o) AS decayed
-                """,
-                cutoff=older_than_iso,
-            )
+            if user_id:
+                result = session.run(
+                    """
+                    MATCH (o:Observation)
+                    WHERE o.status = 'new'
+                      AND o.user_id = $user_id
+                      AND o.created_at < datetime($cutoff)
+                    SET o.status = 'decayed', o.updated_at = datetime()
+                    RETURN count(o) AS decayed
+                    """,
+                    cutoff=older_than_iso,
+                    user_id=user_id,
+                )
+            else:
+                result = session.run(
+                    """
+                    MATCH (o:Observation)
+                    WHERE o.status = 'new'
+                      AND o.created_at < datetime($cutoff)
+                    SET o.status = 'decayed', o.updated_at = datetime()
+                    RETURN count(o) AS decayed
+                    """,
+                    cutoff=older_than_iso,
+                )
             record = result.single()
             return int(record["decayed"]) if record else 0
 
@@ -750,35 +782,77 @@ class GraphStore:
         source: str = "explicit",
         confidence: float = 1.0,
         context: Optional[str] = None,
+        user_id: str = "",
     ) -> Dict[str, Any]:
-        """Create or update a Preference node with embedding."""
-        import asyncio
+        """Create or update a Preference node with embedding.
+        If user_id is provided, scopes the preference to that user."""
         pref_id = f"pref_{uuid.uuid4().hex[:12]}"
+        with self.driver.session() as session:
+            if user_id:
+                result = session.run(
+                    """
+                    MERGE (p:Preference {category: $category, key: $key, scope: $scope, user_id: $user_id})
+                    ON CREATE SET p.id = $id, p.created_at = datetime(),
+                                  p.confidence = $confidence, p.source = $source, p.user_id = $user_id
+                    ON MATCH SET p.confidence = $confidence,
+                                 p.source = $source,
+                                 p.last_reinforced_at = datetime()
+                    SET p.value = $value,
+                        p.context = coalesce($context, p.context),
+                        p.updated_at = datetime()
+                    RETURN p
+                    """,
+                    id=pref_id,
+                    category=category,
+                    key=key,
+                    value=value,
+                    scope=scope,
+                    source=source,
+                    confidence=confidence,
+                    context=context,
+                    user_id=user_id,
+                )
+            else:
+                result = session.run(
+                    """
+                    MERGE (p:Preference {category: $category, key: $key, scope: $scope})
+                    ON CREATE SET p.id = $id, p.created_at = datetime(),
+                                  p.confidence = $confidence, p.source = $source
+                    ON MATCH SET p.confidence = $confidence,
+                                 p.source = $source,
+                                 p.last_reinforced_at = datetime()
+                    SET p.value = $value,
+                        p.context = coalesce($context, p.context),
+                        p.updated_at = datetime()
+                    RETURN p
+                    """,
+                    id=pref_id,
+                    category=category,
+                    key=key,
+                    value=value,
+                    scope=scope,
+                    source=source,
+                    confidence=confidence,
+                    context=context,
+                )
+            record = result.single()
+            return dict(record["p"]) if record else {}
+
+
+    def update_insight_status(self, insight_id: str, status: str) -> bool:
+        """Update an insight's status (pending → promoted/rejected)."""
         with self.driver.session() as session:
             result = session.run(
                 """
-                MERGE (p:Preference {category: $category, key: $key, scope: $scope})
-                ON CREATE SET p.id = $id, p.created_at = datetime(),
-                              p.confidence = $confidence, p.source = $source
-                ON MATCH SET p.confidence = $confidence,
-                             p.source = $source,
-                             p.last_reinforced_at = datetime()
-                SET p.value = $value,
-                    p.context = coalesce($context, p.context),
-                    p.updated_at = datetime()
-                RETURN p
+                MATCH (i:Insight {id: $id})
+                SET i.status = $status, i.updated_at = datetime()
+                RETURN count(i) as updated
                 """,
-                id=pref_id,
-                category=category,
-                key=key,
-                value=value,
-                scope=scope,
-                source=source,
-                confidence=confidence,
-                context=context,
+                id=insight_id,
+                status=status,
             )
             record = result.single()
-            return dict(record["p"]) if record else {}
+            return bool(record and record["updated"] > 0)
 
     def link_consolidates(self, insight_id: str, observation_id: str) -> bool:
         """Create :CONSOLIDATES edge from Insight to Observation."""
@@ -788,7 +862,7 @@ class GraphStore:
                 MATCH (i:Insight {id: $insight_id})
                 MATCH (o:Observation {id: $obs_id})
                 MERGE (i)-[r:CONSOLIDATES]->(o)
-                ON CREATE SET r.owner = pcg, r.created_at = datetime()
+                ON CREATE SET r.owner = "pcg", r.created_at = datetime()
                 RETURN r IS NOT NULL AS linked
                 """,
                 insight_id=insight_id,
@@ -803,7 +877,7 @@ class GraphStore:
             result = session.run(
                 """
                 MATCH (o:Observation {id: $obs_id})
-                SET o.status = promoted, o.updated_at = datetime()
+                SET o.status = 'promoted', o.updated_at = datetime()
                 RETURN o IS NOT NULL AS updated
                 """,
                 obs_id=observation_id,

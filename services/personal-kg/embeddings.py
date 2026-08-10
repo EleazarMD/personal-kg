@@ -36,13 +36,17 @@ class Embedder:
 
     def __init__(self, settings=None):
         self.settings = settings or get_settings()
-        self._base_url = self.settings.ai_gateway_url.rstrip("/")
-        # Accept both "http://host:port" and "http://host:port/api/v1". The
-        # /v1/embeddings OpenAI-compat path is universal; normalize by
-        # stripping a trailing /api/v1 if present, then appending /v1.
-        if self._base_url.endswith("/api/v1"):
-            self._base_url = self._base_url[: -len("/api/v1")]
-        self._endpoint = f"{self._base_url}/v1/embeddings"
+        # Use the dedicated NIM embeddings endpoint (not the AI Gateway, which
+        # does not serve /v1/embeddings). Falls back to the AI Gateway URL
+        # if EMBEDDING_ENDPOINT is not configured.
+        nim_endpoint = getattr(self.settings, "embedding_endpoint", None)
+        if nim_endpoint:
+            self._endpoint = nim_endpoint
+        else:
+            self._base_url = self.settings.ai_gateway_url.rstrip("/")
+            if self._base_url.endswith("/api/v1"):
+                self._base_url = self._base_url[: -len("/api/v1")]
+            self._endpoint = f"{self._base_url}/v1/embeddings"
         self._model = self.settings.embedding_model
         self._dims = int(self.settings.embedding_dims)
         self._api_key = self.settings.ai_gateway_api_key
@@ -64,7 +68,9 @@ class Embedder:
 
     def _headers(self) -> dict:
         h = {"Content-Type": "application/json"}
-        if self._api_key:
+        # NIM embeddings service does not require auth.
+        # Only add Authorization if using the AI Gateway fallback.
+        if self._api_key and "localhost:8006" not in self._endpoint:
             h["Authorization"] = f"Bearer {self._api_key}"
         return h
 
@@ -94,7 +100,7 @@ class Embedder:
         self, texts: List[str]
     ) -> List[Optional[List[float]]]:
         """Single HTTP call. Handles dim validation and fallback-to-None."""
-        body = {"model": self._model, "input": texts}
+        body = {"model": self._model, "input": texts, "input_type": "query"}
         try:
             async with aiohttp.ClientSession(timeout=_TIMEOUT) as session:
                 async with session.post(

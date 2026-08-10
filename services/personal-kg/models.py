@@ -288,6 +288,21 @@ class WorkflowRun(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+
+class InsightType(str, Enum):
+    """Type of consolidation insight (used by the Dreaming pipeline)."""
+    PATTERN = "pattern"
+    CONTRADICTION = "contradiction"
+    TREND = "trend"
+
+
+class WorkflowStatus(str, Enum):
+    """Status of a PCG workflow run (used by consolidation)."""
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
 class Insight(BaseModel):
     """Daily-consolidation output. Clusters recent observations and produces
     a human-readable summary + derived preferences/styles. Written by the
