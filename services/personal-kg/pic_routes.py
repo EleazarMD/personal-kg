@@ -168,6 +168,24 @@ class PICStore:
         if not clean:
             return self.get_health_profile(user_id) or {"user_id": user_id, "message": "No fields to update"}
 
+        # Build dynamic SET clause from the provided fields
+        set_clauses = []
+        params = {"user_id": user_id}
+        for i, (k, v) in enumerate(clean.items()):
+            param_name = f"val_{i}"
+            set_clauses.append(f"h.{k} = ${param_name}")
+            params[param_name] = v
+        set_clauses.append("h.updated_at = datetime()")
+        set_clause = ", ".join(set_clauses)
+
+        with self.graph.driver.session() as session:
+            session.run(
+                f"MERGE (h:HealthProfile {{user_id: $user_id}}) SET {set_clause}",
+                **params,
+            )
+
+        return self.get_health_profile(user_id) or {"user_id": user_id, "status": "updated", **clean}
+
     def record_weigh_in(self, weight_kg: float, user_id: str = "", notes: str = "") -> Dict[str, Any]:
         """Record a weigh-in event and sync latest weight to HealthProfile."""
         import uuid

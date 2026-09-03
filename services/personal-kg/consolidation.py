@@ -127,7 +127,7 @@ async def _summarize_cluster(
         gateway_url = gateway_url[: -len("/v1")]
     if not gateway_url.endswith("/api"):
         gateway_url = gateway_url + "/api"
-    model = settings.consolidation_model or "qwen3-30b-a3b"
+    model = settings.consolidation_model or "muse-glimmer-30b"
 
     obs_texts = []
     for o in observations:

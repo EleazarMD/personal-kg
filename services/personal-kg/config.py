@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Hyperspace backend (for push notification webhook)
     hyperspace_url: str = os.getenv("HYPERSPACE_URL", "http://localhost:8031")
     # Consolidation LLM model (for Dreaming pipeline insight summarization)
-    consolidation_model: str = os.getenv("CONSOLIDATION_MODEL", "qwen3-30b-a3b")
+    consolidation_model: str = os.getenv("CONSOLIDATION_MODEL", "muse-glimmer-30b")
     summarization_model: str = os.getenv("SUMMARIZATION_MODEL", "claude-haiku-4-5")
     # Embedding vector dimensions. Must match `embedding_model`'s output.
     # nvidia/llama-3.2-nv-embedqa-1b-v2 => 2048, nomic-embed-text => 768. If you change
