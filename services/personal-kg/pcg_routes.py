@@ -203,12 +203,25 @@ async def get_contact_context(
     email_limit: int = Query(10, ge=1, le=50),
     observation_limit: int = Query(10, ge=1, le=50),
     topic_limit: int = Query(5, ge=1, le=20),
+    x_user_id: str = Header(default=""),
+    authorization: str = Header(default=""),
 ):
     """Single-traversal join of PCG user-side (Identity + scoped Preferences
     + CommunicationStyle + Observations) and CIG world-side (Person + recent
     Emails + Topics) for a contact. Powers Hermes email personalization in
-    Phase B2."""
-    data = _store().get_contact_context(
+    Phase B2.
+
+    Reads the CALLER's graph (verified JWT subject, else the service
+    caller's X-User-Id) — the shared store answered every user from one
+    account's graph."""
+    try:
+        from pic_routes import get_pic_store, _resolve_user_id
+    except ImportError:
+        from .pic_routes import get_pic_store, _resolve_user_id
+    uid = _resolve_user_id(x_user_id, authorization)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Authenticated user_id is required")
+    data = get_pic_store(uid).graph.get_contact_context(
         contact_email=email,
         email_limit=email_limit,
         observation_limit=observation_limit,
