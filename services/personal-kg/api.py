@@ -177,6 +177,13 @@ app.include_router(pcg_router, prefix="/api/pic", include_in_schema=False)
 # here (the GraphStore instance is the same singleton imported by pic_routes).
 set_pcg_graph_store(graph_store)
 
+# Household + contact roles — the explicit people graph (per-user).
+try:
+    from .household_routes import router as household_router
+except ImportError:
+    from household_routes import router as household_router
+app.include_router(household_router)
+
 # Include LIAM routes
 from liam_routes import router as liam_router
 app.include_router(liam_router)
