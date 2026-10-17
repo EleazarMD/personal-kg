@@ -29,9 +29,10 @@ Mounted at /api/pic (api.py).
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Dict, Optional
 
 from fastapi import APIRouter, Header, HTTPException
+import json
 from pydantic import BaseModel, Field
 
 try:
@@ -81,12 +82,35 @@ def _driver(uid: str):
 
 
 class MemberIn(BaseModel):
-    name: str = Field(..., min_length=1, max_length=80)
+    # Optional so partial writes (set_attribute, single-field updates) don't
+    # need to resend it; required at write time when the member doesn't exist.
+    name: Optional[str] = Field(None, min_length=1, max_length=80)
     relation: str = "child"
     aliases: List[str] = []
     birth_date: Optional[str] = None  # ISO date, or "--MM-DD" when the year is unknown
     grade: Optional[str] = None
     school: Optional[str] = None
+    # Contact attributes (the "save the address to her contact" path).
+    # Typed top-level fields stay queryable ("directions to Janet's home");
+    # `attributes` is the open bag for maiden_name, spouse, notes, etc.
+    home_address: Optional[str] = Field(None, max_length=200)
+    work_address: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=40)
+    notes: Optional[str] = Field(None, max_length=2000)
+    attributes: Dict[str, str] = {}
+
+
+class ContactAttrsIn(BaseModel):
+    """Free-standing contact attributes for a (:Contact {email}) node —
+    the address/phone/alias carrier for people who are NOT household
+    members' external contacts. For a person who IS a member (family),
+    these mirror onto the member too via the client."""
+    name: Optional[str] = Field(None, max_length=120)
+    aliases: List[str] = []
+    home_address: Optional[str] = Field(None, max_length=200)
+    work_address: Optional[str] = Field(None, max_length=200)
+    phone: Optional[str] = Field(None, max_length=40)
+    attributes: Dict[str, str] = {}
 
 
 class RoleIn(BaseModel):
@@ -102,6 +126,12 @@ class RoleIn(BaseModel):
 def _member_dict(node) -> dict:
     d = dict(node)
     d.pop("user_id", None)
+    aj = d.pop("attributes_json", None)
+    if aj:
+        try:
+            d["attributes"] = json.loads(aj)
+        except Exception:
+            d["attributes"] = {}
     return d
 
 
@@ -122,9 +152,34 @@ async def upsert_member(member_id: str, body: MemberIn,
         raise HTTPException(status_code=422, detail="member_id must be a lowercase slug")
     if body.relation not in RELATIONS:
         raise HTTPException(status_code=422, detail=f"relation must be one of {sorted(RELATIONS)}")
-    props = body.model_dump(exclude_none=True)
-    props["aliases"] = sorted({a.strip() for a in body.aliases if a.strip()})
+    # exclude_unset: a partial write (e.g. one attribute) must not reset
+    # relation/aliases/name to MemberIn defaults — merge, do not clobber.
+    props = body.model_dump(exclude_none=True, exclude_unset=True)
+    if "aliases" in props:
+        props["aliases"] = sorted({a.strip() for a in body.aliases if a.strip()})
+    # Neo4j node props are flat (no maps) — attributes ride as JSON text.
+    _attrs = props.pop("attributes", None) or {}
+    if _attrs:
+        existing = {}
+        # merge with stored attributes rather than overwrite
+        cur = s_run = None
+        with _driver(uid).session() as s0:
+            row = s0.run(
+                "MATCH (m:HouseholdMember {user_id: $uid, member_id: $mid}) "
+                "RETURN m.attributes_json AS aj", uid=uid, mid=member_id).single()
+            if row and row["aj"]:
+                try:
+                    existing = json.loads(row["aj"])
+                except Exception:
+                    existing = {}
+        existing.update({k: str(v) for k, v in _attrs.items() if str(v).strip()})
+        props["attributes_json"] = json.dumps(existing, sort_keys=True)
     with _driver(uid).session() as s:
+        _exists = s.run(
+            "MATCH (m:HouseholdMember {user_id: $uid, member_id: $mid}) RETURN 1",
+            uid=uid, mid=member_id).single()
+        if not _exists and not (body.name or "").strip():
+            raise HTTPException(status_code=422, detail="name is required when creating a member")
         rec = s.run(
             """
             MERGE (m:HouseholdMember {user_id: $uid, member_id: $mid})
@@ -192,6 +247,61 @@ async def set_contact_role(email: str, body: RoleIn,
     return {"email": email, "member_id": body.member_id, "edge": dict(rec["r"])}
 
 
+@router.put("/contacts/{email}/attributes")
+async def set_contact_attributes(email: str, body: ContactAttrsIn,
+                                 x_user_id: str = Header(default=""), authorization: str = Header(default="")):
+    """Attach attributes (address, phone, aliases, arbitrary keys) to a
+    Contact node — the typed write surface for 'save the address to her
+    contact'. Per-user graph only."""
+    uid = _uid(x_user_id, authorization)
+    email = _email(email)
+    props = body.model_dump(exclude_none=True)
+    aliases = props.pop("aliases", []) or []
+    _attrs = props.pop("attributes", None) or {}
+    with _driver(uid).session() as s:
+        rec = s.run(
+            """
+            MERGE (c:Contact {user_id: $uid, email: $email})
+            ON CREATE SET c.created_at = $now
+            SET c += $props, c.updated_at = $now
+            RETURN c
+            """, uid=uid, email=email, props=props, now=_now()).single()
+        if aliases:
+            s.run(
+                """
+                MATCH (c:Contact {user_id: $uid, email: $email})
+                SET c.aliases = $aliases
+                """, uid=uid, email=email,
+                aliases=sorted({a.strip() for a in aliases if a.strip()}))
+        if _attrs:
+            row = s.run(
+                "MATCH (c:Contact {user_id: $uid, email: $email}) "
+                "RETURN c.attributes_json AS aj", uid=uid, email=email).single()
+            existing = {}
+            if row and row["aj"]:
+                try:
+                    existing = json.loads(row["aj"])
+                except Exception:
+                    existing = {}
+            existing.update({k: str(v) for k, v in _attrs.items() if str(v).strip()})
+            s.run(
+                "MATCH (c:Contact {user_id: $uid, email: $email}) "
+                "SET c.attributes_json = $aj", uid=uid, email=email,
+                aj=json.dumps(existing, sort_keys=True))
+        row = s.run(
+            "MATCH (c:Contact {user_id: $uid, email: $email}) RETURN c",
+            uid=uid, email=email).single()
+        d = dict(row["c"])
+        d.pop("user_id", None)
+        aj = d.pop("attributes_json", None)
+        if aj:
+            try:
+                d["attributes"] = json.loads(aj)
+            except Exception:
+                d["attributes"] = {}
+        return {"email": email, "contact": d}
+
+
 @router.delete("/contacts/{email}/roles/{member_id}")
 async def delete_contact_role(email: str, member_id: str,
                               x_user_id: str = Header(default=""), authorization: str = Header(default="")):
@@ -204,6 +314,19 @@ async def delete_contact_role(email: str, member_id: str,
             MATCH (:Contact {user_id: $uid, email: $email})-[r:ROLE_FOR]->(:HouseholdMember {user_id: $uid, member_id: $mid})
             DELETE r RETURN count(r) AS n
             """, uid=uid, email=email, mid=member_id).single()["n"]
+    return {"deleted": n}
+
+
+@router.delete("/household/{member_id}")
+async def delete_member(member_id: str, x_user_id: str = Header(default=""), authorization: str = Header(default="")):
+    """Remove a household member + its contact edges. User-scoped."""
+    uid = _uid(x_user_id, authorization)
+    with _driver(uid).session() as s:
+        n = s.run(
+            """
+            MATCH (m:HouseholdMember {user_id: $uid, member_id: $mid})
+            DETACH DELETE m RETURN count(m) AS n
+            """, uid=uid, mid=member_id).single()["n"]
     return {"deleted": n}
 
 
