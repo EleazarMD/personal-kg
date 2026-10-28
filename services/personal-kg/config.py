@@ -4,6 +4,29 @@ import os
 from pydantic_settings import BaseSettings
 
 
+def _service_key(name: str) -> str:
+    """Resolve a service secret: environment first, then Infisical /shared."""
+    val = os.getenv(name, "")
+    if val:
+        return val
+    try:
+        import sys
+        _inf_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "infisical")
+        )
+        _added = os.path.isdir(_inf_dir) and _inf_dir not in sys.path
+        if _added:
+            sys.path.insert(0, _inf_dir)
+        try:
+            from infisical_client import get_shared_secret
+        finally:
+            if _added:
+                sys.path.remove(_inf_dir)
+        return get_shared_secret(name) or ""
+    except Exception:
+        return ""
+
+
 class Settings(BaseSettings):
     """Service configuration."""
     
@@ -49,8 +72,8 @@ class Settings(BaseSettings):
     min_community_size: int = 5
     
     # PIC Authentication
-    pic_read_key: str = os.getenv("PIC_READ_KEY", "pic-read-O-1b4i12nR9gr3kzookTYGZ7NTA_nhSF")
-    pic_admin_key: str = os.getenv("PIC_ADMIN_KEY", "pic-admin-nee9oPtIqFwRUaj5vm96A8LEwMkYtUFU")
+    pic_read_key: str = _service_key("PIC_READ_KEY")
+    pic_admin_key: str = _service_key("PIC_ADMIN_KEY")
 
     # Approval Service (JIT / zero-tolerance) integration.
     # The approval-service issues JIT grants (approved approval_requests) that

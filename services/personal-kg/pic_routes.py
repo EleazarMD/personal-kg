@@ -30,11 +30,11 @@ _pic_store = None
 _user_pic_stores: Dict[str, "PICStore"] = {}
 
 # Known Neo4j credentials per Bolt URI (same as Nova's bolt.py)
-_INSTANCE_CREDENTIALS = {
-    "bolt://localhost:7689": ("neo4j", "graphrag2025"),          # hermes-neo4j (Eleazar)
-    "bolt://localhost:7720": ("neo4j", "claudia-graph-2026"),    # claudia-neo4j
-    "bolt://localhost:7690": ("neo4j", "kids-pcg-dev-password"),  # kids-neo4j
-}
+# Hyperspace-user graphs (:7689 Eleazar, :7720 Claudia) are deliberately
+# ABSENT — their credentials must come from Infisical
+# (/users/<name>/neo4j) so nothing usable ships in source. The kids'
+# shared instance keeps its static entry until that project migrates.
+_INSTANCE_CREDENTIALS: Dict[str, tuple] = {}  # kids-neo4j moved to Infisical /users/kids/neo4j (2026-10-27)
 
 # Default user_id → Bolt URI mapping (fallback when platform DB is unreachable)
 _USER_BOLT_URIS = {
@@ -599,13 +599,43 @@ def _resolve_user_neo4j_credentials(user_id: str) -> tuple:
     uri = _resolve_user_neo4j_uri(user_id)
     if not uri:
         return (None, None, None)
-    user, password = _INSTANCE_CREDENTIALS.get(uri, (settings.neo4j_user, settings.neo4j_password))
-    logger.critical(
-        f"SECURITY: Using static fallback credentials for user {user_id[:8]} "
-        f"at {uri} — Infisical unreachable. These are plaintext passwords "
-        f"in source code and must not be relied upon in production."
+
+    # Primary: Infisical per-user neo4j credentials (/users/<name>/neo4j).
+    try:
+        import sys as _sys
+        _inf_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "infisical")
+        )
+        _added = os.path.isdir(_inf_dir) and _inf_dir not in _sys.path
+        if _added:
+            _sys.path.insert(0, _inf_dir)
+        try:
+            from infisical_client import get_user_neo4j_config
+        finally:
+            if _added:
+                _sys.path.remove(_inf_dir)
+        cfg = get_user_neo4j_config(user_id)
+        if cfg and cfg.get("password"):
+            return (cfg.get("uri") or uri, cfg.get("user") or "neo4j", cfg["password"])
+    except Exception as e:
+        logger.error(f"Infisical neo4j credential lookup failed for {user_id[:8]}: {e}")
+
+    # Fallback: static per-instance map (kids graph only — Hyperspace-user
+    # graphs have no static entry and fail closed when Infisical is down).
+    creds = _INSTANCE_CREDENTIALS.get(uri)
+    if creds:
+        logger.critical(
+            f"SECURITY: Using static fallback credentials for user {user_id[:8]} "
+            f"at {uri} — Infisical unreachable. These are plaintext passwords "
+            f"in source code and must not be relied upon in production."
+        )
+        return (uri, creds[0], creds[1])
+
+    logger.error(
+        f"No neo4j credentials resolvable for user {user_id[:8]} at {uri} "
+        f"— Infisical returned nothing and no static fallback exists."
     )
-    return (uri, user, password)
+    return (None, None, None)
 
 
 def _make_jti_checker():
@@ -633,12 +663,35 @@ def _make_jti_checker():
         return None
 
 
+def _nextauth_secret() -> str:
+    """Resolve the unified-token signing secret: env, then Infisical /shared."""
+    s = os.environ.get("NEXTAUTH_SECRET", "")
+    if s:
+        return s
+    try:
+        import sys as _s
+        _inf = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "infisical")
+        )
+        _added = os.path.isdir(_inf) and _inf not in _s.path
+        if _added:
+            _s.path.insert(0, _inf)
+        try:
+            from infisical_client import get_shared_secret
+        finally:
+            if _added:
+                _s.path.remove(_inf)
+        return get_shared_secret("NEXTAUTH_SECRET") or ""
+    except Exception:
+        return ""
+
+
 def _resolve_user_id(x_user_id: str, authorization: str = "") -> str:
     """Resolve user_id from X-User-Id header or unified JWT Bearer token."""
     # Try unified JWT first
     if _UNIFIED_AVAILABLE and authorization:
         token = authorization.replace("Bearer ", "", 1) if authorization.startswith("Bearer ") else authorization
-        nextauth_secret = os.environ.get("NEXTAUTH_SECRET", "your-development-secret-change-in-production")
+        nextauth_secret = _nextauth_secret()
         # P2.9: Check JTI revocation deny-list
         revocation_checker = _make_jti_checker()
         ctx = _verify_unified(token, secret=nextauth_secret, revocation_checker=revocation_checker)
